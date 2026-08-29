@@ -119,30 +119,33 @@ const STATUS_CONFIG = {
   '면책종결': { color: '#475569', bg: '#f1f5f9', label: '면책·종결' }
 };
 
-// 2-1. Direct Category Case Filter Helper
+// 2-1. Direct Category Case Filter Helper (Strictly ONLY active non-closed cases on Dashboard)
 function getDirectCategoryCases(catKey) {
   const all = state.allCases || [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // All dashboard categories strictly consider ONLY active (non-closed) cases
+  const activeCases = all.filter(c => c && c.status !== '면책종결');
+
   if (catKey === 'ACTIVE') {
-    return all.filter(c => c && c.status !== '면책종결');
+    return activeCases;
   } else if (catKey === 'INTERVIEW') {
-    return all.filter(c => c && c.status !== '면책종결' && !c.interview_done);
+    return activeCases.filter(c => !c.interview_done);
   } else if (catKey === 'DOCS') {
-    return all.filter(c => c && c.status !== '면책종결' && !c.docs_completed);
+    return activeCases.filter(c => !c.docs_completed);
   } else if (catKey === 'DEADLINE') {
-    return all.filter(c => {
-      if (!c || !c.meeting_date || c.status === '면책종결') return false;
+    return activeCases.filter(c => {
+      if (!c.meeting_date) return false;
       const mDate = new Date(c.meeting_date);
       mDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((mDate - today) / (1000 * 60 * 60 * 24));
       return diffDays >= 0 && diffDays <= 14;
     });
   } else if (catKey === 'REPORTS') {
-    return all.filter(c => c && (c.status === '면책종결' || c.report_submitted));
+    return activeCases.filter(c => c.report_submitted);
   }
-  return all;
+  return activeCases;
 }
 
 // 3. Application State

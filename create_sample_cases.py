@@ -7,9 +7,15 @@ def generate_full_sample_database():
     base_dir = os.path.abspath("사건저장소")
     os.makedirs(base_dir, exist_ok=True)
     
-    # 1. First, update all existing past cases before 2026-06 to "면책종결", interview_done=True, docs_completed=True, report_submitted=True
+    # 1. Update all past cases before 2026-06 or any closed case to "면책종결" with all flags completed
     if os.path.exists(base_dir):
         for root, dirs, files in os.walk(base_dir):
+            # Clean up unwanted future months (09월 ~ 12월) if any
+            for d in list(dirs):
+                if any(m in d for m in ["09월", "10월", "11월_배정사건", "12월_배정사건"]) and "2026년" in root:
+                    import shutil
+                    shutil.rmtree(os.path.join(root, d), ignore_errors=True)
+            
             if "사건메타정보.json" in files:
                 meta_path = os.path.join(root, "사건메타정보.json")
                 try:
@@ -19,13 +25,16 @@ def generate_full_sample_database():
                     assigned = meta.get("assigned_date", "")
                     year = meta.get("year", "")
                     month = meta.get("month_category", "")
+                    status = meta.get("status", "")
                     
                     is_old = False
-                    if year and ("2025" in year or "2024" in year):
+                    if year and ("2025" in year or "2024" in year or "2023" in year):
                         is_old = True
                     elif "01월" in month or "02월" in month or "03월" in month or "04월" in month or "05월" in month:
                         is_old = True
                     elif assigned and assigned < "2026-06-01":
+                        is_old = True
+                    elif status == "면책종결":
                         is_old = True
                         
                     if is_old:
@@ -33,6 +42,7 @@ def generate_full_sample_database():
                         meta["interview_done"] = True
                         meta["docs_completed"] = True
                         meta["report_submitted"] = True
+                        meta["memo"] = "법원 면책 허가 결정 확정 및 사건 종결 완료."
                         with open(meta_path, "w", encoding="utf-8") as f:
                             json.dump(meta, f, ensure_ascii=False, indent=2)
                 except Exception as e:
