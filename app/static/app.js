@@ -959,12 +959,55 @@ function initEventListeners() {
     headerCaseBadge.addEventListener('click', () => switchView('workspace'));
   }
 
+  // Helper to open explorer with specific pipeline filter applied
+  function openExplorerWithFilter(filterKey) {
+    state.activeFilter = filterKey || 'ALL';
+    state.searchQuery = '';
+    const searchInput = document.getElementById('explorerSearchInput');
+    if (searchInput) searchInput.value = '';
+    const clearBtn = document.getElementById('modalClearSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    // Update status pills in explorer modal
+    const pillBtns = document.querySelectorAll('.mockup-pill-btn');
+    pillBtns.forEach(btn => {
+      if (btn.getAttribute('data-status') === state.activeFilter) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    state.navPath = [];
+    state.selectedIndex = 0;
+    openExplorerModal();
+  }
+
+  // Modal Triggers: Hero Counter Cards (Direct Filter Integration)
+  const kpiActiveCard = document.getElementById('kpiActiveCard');
+  if (kpiActiveCard) kpiActiveCard.addEventListener('click', () => openExplorerWithFilter('ALL'));
+
+  const kpiInterviewCard = document.getElementById('kpiInterviewCard');
+  if (kpiInterviewCard) kpiInterviewCard.addEventListener('click', () => openExplorerWithFilter('NEW'));
+
+  const kpiDocsCard = document.getElementById('kpiDocsCard');
+  if (kpiDocsCard) kpiDocsCard.addEventListener('click', () => openExplorerWithFilter('DOC_CORRECTION'));
+
+  const kpiDeadlineCard = document.getElementById('kpiDeadlineCard');
+  if (kpiDeadlineCard) kpiDeadlineCard.addEventListener('click', () => openExplorerWithFilter('MEETING'));
+
+  const kpiReportCard = document.getElementById('kpiReportCard');
+  if (kpiReportCard) kpiReportCard.addEventListener('click', () => openExplorerWithFilter('CLOSED'));
+
+  const kpiExplorerCard = document.getElementById('kpiExplorerCard');
+  if (kpiExplorerCard) kpiExplorerCard.addEventListener('click', () => openExplorerModal());
+
   // Modal Triggers: 3x3 Explorer Modal
   const openExplorerBtn = document.getElementById('openExplorerBtn');
-  if (openExplorerBtn) openExplorerBtn.addEventListener('click', openExplorerModal);
+  if (openExplorerBtn) openExplorerBtn.addEventListener('click', () => openExplorerWithFilter('ALL'));
 
   const dashOpenExplorerBtn = document.getElementById('dashOpenExplorerBtn');
-  if (dashOpenExplorerBtn) dashOpenExplorerBtn.addEventListener('click', openExplorerModal);
+  if (dashOpenExplorerBtn) dashOpenExplorerBtn.addEventListener('click', () => openExplorerWithFilter('ALL'));
 
   const closeExplorerBtn = document.getElementById('closeExplorerBtn');
   if (closeExplorerBtn) closeExplorerBtn.addEventListener('click', closeExplorerModal);

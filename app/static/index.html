@@ -12,16 +12,13 @@
 <body>
   <div class="app-container" id="appContainer">
 
-    <!-- 1. Top Editorial Dark Olive Header Bar (Pack to Go Inspiration) -->
+    <!-- 1. Top Editorial Dark Olive Header Bar -->
     <header class="top-header">
       <div class="header-left">
-        <!-- Logo Branding -->
+        <!-- Logo Branding (All Korean, no divider, no English slogan) -->
         <div class="editorial-brand" id="navDashboardBtn" title="메인 종합 상황판으로 이동">
-          <span class="brand-title">Bankruptcy Admin</span>
-          <span class="brand-sub">LOCAL / SECURE / INTEGRITY</span>
+          <span class="brand-title">파산관제 스마트 매니저</span>
         </div>
-
-        <div class="header-divider"></div>
 
         <!-- Floating Explorer Trigger -->
         <button class="btn-explorer" id="openExplorerBtn" title="3x3 사건 탐색기 열기 (Ctrl+K)">
@@ -51,7 +48,7 @@
         <div class="user-status-pill">
           <span class="status-avatar">⚖️</span>
           <span class="status-name">관제인 집무실</span>
-          <span class="status-mode">LOCAL SECURE</span>
+          <span class="status-mode">로컬 보안</span>
         </div>
       </div>
     </header>
@@ -59,16 +56,10 @@
     <!-- 2. 🔥 MAIN EDITORIAL DASHBOARD VIEW (Phase 2 메인 상황판) 🔥 -->
     <main class="dashboard-view" id="dashboardView">
 
-      <!-- Editorial Index Sub-header -->
-      <div class="editorial-sub-bar">
-        <span class="sub-bar-left">CASE INDEX & ACTIVE DOCKET</span>
-        <span class="sub-bar-right">FIELD NOTES & LEGAL ADMINISTRATION IN PROGRESS</span>
-      </div>
-
       <!-- Hero Calligraphy / Typography Section -->
       <section class="editorial-hero-section">
         <div class="hero-calligraphy-box">
-          <span class="hero-category-tag">■ ACTIVE WORKLOAD</span>
+          <span class="hero-category-tag">■ 오늘의 관제 사건 현황</span>
           <h1 class="hero-script-title">
             오늘의 관제 사건을,<br>
             <span class="script-accent">더 선명하고 공정하게.</span>
@@ -78,33 +69,38 @@
           </p>
         </div>
 
-        <!-- Right Minimalist Classic Table Counter -->
+        <!-- Right Minimalist Classic Table Counter (6 Equal Cards with Direct Filter Linking) -->
         <div class="hero-counter-table">
           <div class="counter-table-row">
-            <div class="counter-table-col" id="kpiActiveCard">
-              <span class="counter-table-label">ACTIVE CASES</span>
+            <div class="counter-table-col" id="kpiActiveCard" title="진행 중인 활성 사건을 사건 탐색기로 조회">
+              <span class="counter-table-label">진행 사건</span>
               <span class="counter-table-num" id="kpiActiveCount">0</span>
-              <span class="counter-table-sub">진행 사건</span>
+              <span class="counter-table-sub">활성 사건</span>
             </div>
-            <div class="counter-table-col" id="kpiInterviewCard">
-              <span class="counter-table-label">INTERVIEW</span>
+            <div class="counter-table-col" id="kpiInterviewCard" title="상담(면담) 필요한 사건을 사건 탐색기로 조회">
+              <span class="counter-table-label">상담 필요</span>
               <span class="counter-table-num" id="kpiInterviewCount">0</span>
-              <span class="counter-table-sub">상담 필요</span>
+              <span class="counter-table-sub">면담 대기</span>
             </div>
-            <div class="counter-table-col" id="kpiDocsCard">
-              <span class="counter-table-label">DOCS CHECK</span>
+            <div class="counter-table-col" id="kpiDocsCard" title="서류 보정/미완료 사건을 사건 탐색기로 조회">
+              <span class="counter-table-label">서류 보정</span>
               <span class="counter-table-num" id="kpiDocsCount">0</span>
-              <span class="counter-table-sub">서류 보정</span>
+              <span class="counter-table-sub">보정 대기</span>
             </div>
-            <div class="counter-table-col highlight" id="kpiDeadlineCard">
-              <span class="counter-table-label">D-DAY URGENT</span>
+            <div class="counter-table-col highlight" id="kpiDeadlineCard" title="D-14 기일 임박 사건을 사건 탐색기로 조회">
+              <span class="counter-table-label">기일 임박</span>
               <span class="counter-table-num text-urgent" id="kpiDeadlineCount">0</span>
-              <span class="counter-table-sub">기일 임박 (D-14)</span>
+              <span class="counter-table-sub">D-14 집회</span>
             </div>
-            <div class="counter-table-col" id="kpiReportCard">
-              <span class="counter-table-label">REPORTS</span>
+            <div class="counter-table-col" id="kpiReportCard" title="보고서 제출 대상 사건을 사건 탐색기로 조회">
+              <span class="counter-table-label">보고서 제출</span>
               <span class="counter-table-num" id="kpiReportCount">0</span>
               <span class="counter-table-sub" id="kpiReportSub">제출 완료</span>
+            </div>
+            <div class="counter-table-col explorer-link-col" id="kpiExplorerCard" title="3x3 전체 사건 탐색기 열기">
+              <span class="counter-table-label">사건 탐색기</span>
+              <span class="counter-table-num explorer-icon">📁</span>
+              <span class="counter-table-sub">전체 조회 ›</span>
             </div>
           </div>
         </div>

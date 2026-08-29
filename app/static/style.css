@@ -1478,7 +1478,7 @@ kbd {
   line-height: 1.55;
 }
 
-/* Minimalist Classic Table Counter */
+/* Minimalist Classic Table Counter (6 Equal Cards with +20% Font Size & No Line-Wrap) */
 .hero-counter-table {
   background: #ffffff;
   border: 1px solid #e8e4dc;
@@ -1489,18 +1489,24 @@ kbd {
 }
 
 .counter-table-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  width: 100%;
 }
 
 .counter-table-col {
-  padding: 16px 22px;
+  padding: 16px 14px;
   border-right: 1px solid #e8e4dc;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 105px;
+  justify-content: center;
+  min-width: 95px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  text-align: center;
+  user-select: none;
 }
 
 .counter-table-col:last-child {
@@ -1508,31 +1514,50 @@ kbd {
 }
 
 .counter-table-col:hover {
+  background: #f7f4ea;
+  transform: translateY(-1px);
+}
+
+.counter-table-col.explorer-link-col {
   background: #fbf9f4;
 }
 
+.counter-table-col.explorer-link-col:hover {
+  background: #f0ebd8;
+}
+
 .counter-table-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 14px;
   color: #6b776f;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   font-weight: 700;
-  text-transform: uppercase;
+  white-space: nowrap;
+  margin-bottom: 2px;
 }
 
 .counter-table-num {
   font-family: 'Playfair Display', serif;
-  font-size: 35px;
+  font-size: 40px;
   font-weight: 700;
   color: #1a201c;
-  margin: 3px 0;
-  line-height: 1.1;
+  margin: 2px 0;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.counter-table-num.explorer-icon {
+  font-size: 32px;
+  font-family: var(--font-heading);
+  margin: 6px 0 3px 0;
+  line-height: 1;
 }
 
 .counter-table-sub {
-  font-size: 13.5px;
+  font-size: 15.5px;
   color: #6b776f;
   font-weight: 600;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 
 .counter-table-col.highlight .counter-table-num {
