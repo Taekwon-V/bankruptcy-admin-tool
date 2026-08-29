@@ -93,47 +93,39 @@ body {
    1. Main Workspace Top Header Bar
    ========================================================================== */
 .top-header {
-  height: 52px;
+  height: 60px;
   background-color: #1e3322;
   border-bottom: 1px solid #2d4732;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
+  justify-content: flex-start;
+  padding: 0 36px;
   z-index: 20;
   flex-shrink: 0;
   color: #ffffff;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-/* Editorial Brand */
+/* Editorial Brand in Large Delicate Korean Calligraphy */
 .editorial-brand {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
   cursor: pointer;
   user-select: none;
 }
 
 .brand-title {
-  font-family: 'Cinzel', serif;
-  font-size: 17px;
-  font-weight: 800;
-  color: #ffffff;
+  font-family: 'Nanum Pen Script', 'Gowun Batang', cursive, serif;
+  font-size: 34px;
+  font-weight: 400;
+  color: #fdfbf7;
   letter-spacing: 0.04em;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.2s;
 }
 
-.brand-sub {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: #9bb89f;
-  letter-spacing: 0.1em;
-  font-weight: 700;
+.brand-title:hover {
+  opacity: 0.9;
 }
 
 /* Floating Explorer Button */
@@ -1478,12 +1470,12 @@ kbd {
   line-height: 1.55;
 }
 
-/* Minimalist Classic Table Counter (6 Equal Cards with +20% Font Size & No Line-Wrap) */
+/* Minimalist Classic Table Counter (Enlarged Tour-Style Cards with Direct Filter Linking) */
 .hero-counter-table {
   background: #ffffff;
   border: 1px solid #e8e4dc;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1495,13 +1487,13 @@ kbd {
 }
 
 .counter-table-col {
-  padding: 16px 14px;
+  padding: 20px 22px;
   border-right: 1px solid #e8e4dc;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 95px;
+  min-width: 110px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
@@ -1514,50 +1506,42 @@ kbd {
 }
 
 .counter-table-col:hover {
-  background: #f7f4ea;
-  transform: translateY(-1px);
+  background: #fbf9f2;
+  transform: translateY(-2px);
 }
 
 .counter-table-col.explorer-link-col {
-  background: #fbf9f4;
+  background: #fcfbf8;
 }
 
 .counter-table-col.explorer-link-col:hover {
-  background: #f0ebd8;
+  background: #f4f0e6;
 }
 
 .counter-table-label {
-  font-size: 14px;
-  color: #6b776f;
+  font-size: 16px;
+  color: #5f6b63;
   letter-spacing: 0.02em;
   font-weight: 700;
   white-space: nowrap;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
 }
 
 .counter-table-num {
   font-family: 'Playfair Display', serif;
-  font-size: 40px;
+  font-size: 46px;
   font-weight: 700;
   color: #1a201c;
-  margin: 2px 0;
-  line-height: 1.05;
+  margin: 0;
+  line-height: 1;
   white-space: nowrap;
 }
 
 .counter-table-num.explorer-icon {
-  font-size: 32px;
+  font-size: 38px;
   font-family: var(--font-heading);
-  margin: 6px 0 3px 0;
+  margin: 4px 0 0 0;
   line-height: 1;
-}
-
-.counter-table-sub {
-  font-size: 15.5px;
-  color: #6b776f;
-  font-weight: 600;
-  white-space: nowrap;
-  margin-top: 2px;
 }
 
 .counter-table-col.highlight .counter-table-num {
