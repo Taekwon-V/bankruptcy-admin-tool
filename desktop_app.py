@@ -9,18 +9,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
 INDEX_HTML = os.path.join(STATIC_DIR, "index.html")
 STORAGE_ROOT = os.path.abspath(os.path.join(BASE_DIR, "사건저장소"))
-SAMPLE_SOURCE = os.path.abspath(os.path.join(BASE_DIR, "사건저장소_샘플"))
-
-# 사건저장소 폴더가 없으면 초기 자동 생성 (샘플 데이터가 있으면 안전하게 1회 복제 후 독립 운영)
-if not os.path.exists(STORAGE_ROOT):
-    if os.path.exists(SAMPLE_SOURCE):
-        try:
-            shutil.copytree(SAMPLE_SOURCE, STORAGE_ROOT)
-        except Exception as copy_err:
-            print(f"Initial storage init error: {copy_err}")
-            os.makedirs(STORAGE_ROOT, exist_ok=True)
-    else:
-        os.makedirs(STORAGE_ROOT, exist_ok=True)
+os.makedirs(STORAGE_ROOT, exist_ok=True)
 
 class DesktopAPI:
     """100% 로컬 네이티브 데스크톱 API (서버 없이 파이썬-GUI 직접 통신)"""
