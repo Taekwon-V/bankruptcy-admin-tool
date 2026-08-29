@@ -89,7 +89,7 @@ def generate_full_sample_database():
         ])
     ]
 
-    CONSULTATION_HOURS = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
+    CONSULTATION_HOURS = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
     booked_interviews = {} # date -> set of booked hours
     interview_dates_pool = [
         "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04",

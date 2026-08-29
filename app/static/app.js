@@ -287,8 +287,8 @@ function renderDashboard() {
   renderWeeklyCalendar();
 }
 
-// 5-0. Standard Consultation Hours (1-hour discrete slots: 10:00 ~ 17:00)
-const CONSULTATION_HOURS = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+// 5-0. Standard Consultation Hours (1-hour discrete slots: 09:00 ~ 17:00)
+const CONSULTATION_HOURS = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 
 function getBookedInterviewTimes(dateStr, excludeCaseNo = null) {
   return (state.allCases || [])
@@ -536,30 +536,34 @@ async function handleEventDrop(e, targetDate) {
     const flagData = {};
 
     if (eventType === 'INTERVIEW') {
-      // Collision Prevention Check for 1-hour consultation slots
+      // Collision Prevention Check for 1-hour consultation slots (09:00~17:00)
       const availableSlots = getAvailableInterviewSlots(targetDate, caseNumber);
+      
+      // 1. If NO slots available at all (09:00~17:00 fully booked on targetDate)
       if (availableSlots.length === 0) {
-        alert(`⚠️ [상담 예약 불가]\n\n해당 일자(${targetDate})는 1시간 단위 상담 시간(10:00~17:00)이 모두 예약되었습니다.\n다른 날짜를 선택해주세요.`);
+        alert(`⚠️ [상담 예약 마감]\n\n해당 일자(${targetDate})는 근무시간(09:00~17:00) 내 모든 상담 예약이 마감되었습니다.\n다른 날짜를 선택해주세요.`);
         return;
       }
 
-      // Preserve current time if available on target date, else assign first available open slot
-      let targetTime = fromTime;
-      if (!availableSlots.includes(targetTime)) {
-        targetTime = availableSlots[0];
+      // 2. If original time (fromTime) is ALREADY OCCUPIED on targetDate (시간 겹침 발생)
+      if (!fromTime || !availableSlots.includes(fromTime)) {
+        // Open Time Selector Modal for user to pick an available open slot on targetDate!
+        openInterviewScheduleModal(caseItem, targetDate, true, fromTime || '10:00');
+        return;
       }
 
-      const confirmMsg = `[${debtorName}] 사건의 [상담] 일시를\n${fromDate} (${fromTime || '10:00'}) ➔ ${targetDate} ${targetTime} (으)로 변경하시겠습니까?`;
+      // 3. If original time is free on targetDate
+      const confirmMsg = `[${debtorName}] 사건의 [상담] 일시를\n${fromDate} (${fromTime}) ➔ ${targetDate} ${fromTime} (으)로 변경하시겠습니까?`;
       if (!confirm(confirmMsg)) return;
 
       flagData.assigned_date = targetDate;
       flagData.interview_date = targetDate;
-      flagData.interview_time = targetTime;
+      flagData.interview_time = fromTime;
 
       await updateCaseFlag(
         caseItem,
         flagData,
-        `[${debtorName}] 상담 일시가 ${targetDate} ${targetTime}(으)로 성공적으로 변경되었습니다.`
+        `[${debtorName}] 상담 일시가 ${targetDate} ${fromTime}(으)로 성공적으로 변경되었습니다.`
       );
     } else {
       const confirmMsg = `[${debtorName}] 사건의 [${eventTypeLabel}] 날짜를\n${fromDate} ➔ ${targetDate} (으)로 변경하시겠습니까?`;
@@ -1802,23 +1806,35 @@ function populateInterviewTimeSelect(selectedDate, excludeCaseNo, preferredTime 
   }
 }
 
-function openInterviewScheduleModal(caseItem) {
+function openInterviewScheduleModal(caseItem, initialDate = null, isConflict = false, conflictedTime = null) {
   if (!caseItem) return;
   state.caseToSchedule = caseItem;
 
   const titleEl = document.getElementById('interviewModalCaseTitle');
-  if (titleEl) titleEl.textContent = `[${caseItem.case_number || ''}] ${caseItem.debtor_name || ''}`;
+  if (titleEl) {
+    if (isConflict) {
+      titleEl.textContent = `[${caseItem.case_number || ''}] ${caseItem.debtor_name || ''} - 상담 시간 선택`;
+    } else {
+      titleEl.textContent = `[${caseItem.case_number || ''}] ${caseItem.debtor_name || ''}`;
+    }
+  }
 
-  const curDate = caseItem.interview_date || caseItem.assigned_date || toDateISO(new Date());
+  const curDate = initialDate || caseItem.interview_date || caseItem.assigned_date || toDateISO(new Date());
   const curTime = caseItem.interview_time || '10:00';
 
   const dispEl = document.getElementById('interviewModalCurrentDisplay');
-  if (dispEl) dispEl.textContent = `현재 예약: ${curDate} ${curTime}`;
+  if (dispEl) {
+    if (isConflict) {
+      dispEl.innerHTML = `<span style="color:#dc2626; font-weight:500;">⚠️ 기존 시간(${conflictedTime})이 ${curDate}에 이미 예약되어 겹칩니다.</span><br><span style="color:#0369a1;">해당 날짜(09:00~17:00)의 비어있는 상담 시간을 선택해주세요.</span>`;
+    } else {
+      dispEl.innerHTML = `현재 예약: ${caseItem.interview_date || caseItem.assigned_date || curDate} ${curTime}`;
+    }
+  }
 
   const dateInput = document.getElementById('interviewDatePicker');
   if (dateInput) dateInput.value = curDate;
 
-  populateInterviewTimeSelect(curDate, caseItem.case_number, curTime);
+  populateInterviewTimeSelect(curDate, caseItem.case_number, isConflict ? null : curTime);
 
   const modal = document.getElementById('interviewScheduleModal');
   if (modal) modal.classList.add('open');
