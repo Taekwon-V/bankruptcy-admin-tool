@@ -1,5 +1,5 @@
 /**
- * 파산관제 스마트 매니저 - 3x3 Case Card Grid & Case Registration / Safe Move Logic (Null-Safe)
+ * 파산관제 스마트 매니저 - Phase 2 종합 업무 상황판 & 3x3 사건 탐색기
  */
 
 // 1. Korean Chosung Search Engine
@@ -89,9 +89,18 @@ function formatKoreanFullAmount(amount) {
   };
 }
 
-// 2. Status Grouping (6 Unified Pipeline Statuses)
-function matchesStatusFilter(status, filterKey) {
-  if (filterKey === 'ALL') return true;
+// 2. Standard 6 Pipeline Status Definition
+const PIPELINE_STATUSES = [
+  '신규접수',
+  '서류보정중',
+  '통장분석중',
+  '채권자집회대기',
+  '환가배당진행',
+  '면책종결'
+];
+
+function matchStatus(status, filterKey) {
+  if (!filterKey || filterKey === 'ALL') return true;
   if (filterKey === 'NEW') return status === '신규접수';
   if (filterKey === 'DOC_CORRECTION') return status === '서류보정중';
   if (filterKey === 'BANK_ANALYSIS') return status === '통장분석중';
@@ -112,6 +121,7 @@ const STATUS_CONFIG = {
 
 // 3. Application State
 const state = {
+  activeView: 'dashboard', // 'dashboard' | 'workspace'
   allCases: [],
   selectedCase: null,
   navPath: [], // [] = Root/Years, ['2026년'] = Months, ['2026년', '02월_배정사건'] = Cases
@@ -164,30 +174,408 @@ function processLoadedCases(data, preserveSelection = true) {
   if (state.allCases.length > 0) {
     if (!preserveSelection || !state.selectedCase) {
       const febCase = state.allCases.find(c => c?.case_number === '2026하면0201') || state.allCases[0];
-      selectCase(febCase);
+      selectCase(febCase, false); // Don't auto-switch view on init
     } else {
-      // Re-find current selected case safely
       const curNo = state.selectedCase?.case_number;
       const current = curNo ? state.allCases.find(c => c?.case_number === curNo) : null;
       if (current) {
-        selectCase(current);
+        selectCase(current, false);
       } else {
-        selectCase(state.allCases[0]);
+        selectCase(state.allCases[0], false);
       }
     }
   }
   
   updateStatusFilterCounts();
+  renderDashboard();
   renderExplorer();
 }
 
-// Update Top Pill Bar Text (Scoped Dynamically to Current NavPath Drill-down!)
+// Switch between Dashboard and Workspace Views
+function switchView(viewName) {
+  state.activeView = viewName;
+  const dashView = document.getElementById('dashboardView');
+  const workView = document.getElementById('workspaceView');
+  const navDashBtn = document.getElementById('navDashboardBtn');
+  const headerCaseBadge = document.getElementById('headerCaseBadge');
+
+  if (viewName === 'dashboard') {
+    if (dashView) dashView.style.display = 'flex';
+    if (workView) workView.style.display = 'none';
+    if (navDashBtn) navDashBtn.classList.add('active');
+    if (headerCaseBadge) headerCaseBadge.style.opacity = '0.85';
+    renderDashboard();
+  } else {
+    if (dashView) dashView.style.display = 'none';
+    if (workView) workView.style.display = 'block';
+    if (navDashBtn) navDashBtn.classList.remove('active');
+    if (headerCaseBadge) headerCaseBadge.style.opacity = '1';
+  }
+}
+
+// 5. 🔥 RENDER PHASE 2 DASHBOARD (메인 종합 업무 상황판) 🔥
+function renderDashboard() {
+  // 1. Format today date in Korean
+  const today = new Date();
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const dayName = days[today.getDay()];
+  const dateStr = `${yyyy}년 ${mm}월 ${dd}일 (${dayName})`;
+  const dateEl = document.getElementById('dashTodayDateDisplay');
+  if (dateEl) dateEl.textContent = dateStr;
+
+  // 2. Metrics Calculation
+  const all = state.allCases;
+  const activeCases = all.filter(c => c && c.status !== '면책종결');
+  
+  // Pending Interviews: interview_done === false
+  const pendingInterviews = activeCases.filter(c => !c.interview_done);
+  
+  // Incomplete Docs: docs_completed === false
+  const incompleteDocs = activeCases.filter(c => !c.docs_completed);
+  
+  // Upcoming Deadlines (D-Day based on meeting_date)
+  today.setHours(0, 0, 0, 0);
+  const upcomingMeetings = activeCases
+    .filter(c => c && c.meeting_date)
+    .map(c => {
+      const mDate = new Date(c.meeting_date);
+      mDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((mDate - today) / (1000 * 60 * 60 * 24));
+      return { ...c, diffDays };
+    })
+    .sort((a, b) => a.diffDays - b.diffDays);
+
+  const urgentCount = upcomingMeetings.filter(c => c.diffDays >= 0 && c.diffDays <= 14).length;
+  
+  // Final Reports
+  const reportsSubmitted = all.filter(c => c && c.report_submitted).length;
+  const reportsPending = activeCases.filter(c => c && !c.report_submitted && ['통장분석중', '채권자집회대기', '환가배당진행'].includes(c.status)).length;
+
+  // 3. Update 5 KPI Cards
+  const elActive = document.getElementById('kpiActiveCount');
+  if (elActive) elActive.textContent = activeCases.length;
+
+  const elInterview = document.getElementById('kpiInterviewCount');
+  if (elInterview) elInterview.textContent = pendingInterviews.length;
+
+  const elDocs = document.getElementById('kpiDocsCount');
+  if (elDocs) elDocs.textContent = incompleteDocs.length;
+
+  const elDeadline = document.getElementById('kpiDeadlineCount');
+  if (elDeadline) elDeadline.textContent = urgentCount;
+  const elDeadlineSub = document.getElementById('kpiDeadlineSub');
+  if (elDeadlineSub) elDeadlineSub.textContent = `D-14일 이내: ${urgentCount}건 / 전체: ${upcomingMeetings.length}건`;
+
+  const elReport = document.getElementById('kpiReportCount');
+  if (elReport) elReport.textContent = reportsSubmitted;
+  const elReportSub = document.getElementById('kpiReportSub');
+  if (elReportSub) elReportSub.textContent = `작성대기 ${reportsPending}건 · 제출완료 ${reportsSubmitted}건`;
+
+  // 4. Render Upcoming Meetings List (D-Day)
+  const meetingsContainer = document.getElementById('dashUpcomingMeetingsList');
+  if (meetingsContainer) {
+    if (upcomingMeetings.length === 0) {
+      meetingsContainer.innerHTML = '<div class="empty-dash-list">현재 예정된 채권자집회 기일이 없습니다.</div>';
+    } else {
+      meetingsContainer.innerHTML = '';
+      upcomingMeetings.slice(0, 6).forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'dash-dday-item';
+        
+        let ddayClass = 'normal';
+        let ddayBadgeText = `D-${item.diffDays}`;
+        if (item.diffDays < 0) {
+          ddayClass = 'urgent';
+          ddayBadgeText = `D+${Math.abs(item.diffDays)} (기일경과)`;
+        } else if (item.diffDays <= 7) {
+          ddayClass = 'urgent';
+          ddayBadgeText = `D-${item.diffDays} (긴급)`;
+        } else if (item.diffDays <= 14) {
+          ddayClass = 'warn';
+          ddayBadgeText = `D-${item.diffDays}`;
+        }
+
+        const cfg = STATUS_CONFIG[item.status] || { color: '#0284c7', bg: '#e0f2fe', label: item.status };
+        const repStatus = item.report_submitted ? '✅ 보고서제출' : '📝 보고서미제출';
+
+        itemEl.innerHTML = `
+          <div class="dday-left">
+            <span class="dday-badge ${ddayClass}">${ddayBadgeText}</span>
+            <div class="dday-case-info">
+              <span class="dday-case-no">${item.case_number || '-'}</span>
+              <span class="dday-debtor">${item.debtor_name || '-'}</span>
+              <span class="dday-court">| ${item.court || '법원'} (${repStatus})</span>
+            </div>
+          </div>
+          <div class="dday-right">
+            <span class="dday-date-str">🗓️ ${item.meeting_date}</span>
+            <span class="dday-status-pill" style="background:${cfg.bg}; color:${cfg.color};">${cfg.label}</span>
+          </div>
+        `;
+
+        itemEl.addEventListener('click', () => {
+          selectCase(item, true); // Select and switch to workspace view!
+        });
+
+        meetingsContainer.appendChild(itemEl);
+      });
+    }
+  }
+
+  // 5. Render Pending Interviews Queue
+  const interviewContainer = document.getElementById('dashInterviewList');
+  const badgeInterview = document.getElementById('badgeInterviewQueue');
+  if (badgeInterview) badgeInterview.textContent = `${pendingInterviews.length}건`;
+
+  if (interviewContainer) {
+    if (pendingInterviews.length === 0) {
+      interviewContainer.innerHTML = '<div class="empty-dash-list">✅ 모든 채무자 상담(면담)이 완료되었습니다.</div>';
+    } else {
+      interviewContainer.innerHTML = '';
+      pendingInterviews.slice(0, 5).forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'dash-queue-item';
+        
+        const phone = formatKoreanPhoneNumber(item.phone || '010-0000-0000');
+        itemEl.innerHTML = `
+          <div class="queue-left">
+            <div class="queue-title-row">
+              <span class="queue-case-no">${item.case_number || '-'}</span>
+              <span class="queue-debtor">${item.debtor_name || '-'}</span>
+            </div>
+            <span class="queue-phone">📞 ${phone}</span>
+          </div>
+          <button class="btn-queue-action" title="상담 완료로 변경">✔ 상담 완료</button>
+        `;
+
+        // Action button: toggle interview_done
+        const actBtn = itemEl.querySelector('.btn-queue-action');
+        if (actBtn) {
+          actBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCaseFlag(item, { interview_done: true }, `[${item.debtor_name}] 상담 완료 처리되었습니다.`);
+          });
+        }
+
+        itemEl.addEventListener('click', () => {
+          selectCase(item, true);
+        });
+
+        interviewContainer.appendChild(itemEl);
+      });
+    }
+  }
+
+  // 6. Render Incomplete Docs Queue
+  const docsContainer = document.getElementById('dashDocsList');
+  const badgeDocs = document.getElementById('badgeDocsQueue');
+  if (badgeDocs) badgeDocs.textContent = `${incompleteDocs.length}건`;
+
+  if (docsContainer) {
+    if (incompleteDocs.length === 0) {
+      docsContainer.innerHTML = '<div class="empty-dash-list">✅ 모든 사건의 필수 서류가 완비되었습니다.</div>';
+    } else {
+      docsContainer.innerHTML = '';
+      incompleteDocs.slice(0, 5).forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'dash-queue-item';
+        
+        itemEl.innerHTML = `
+          <div class="queue-left">
+            <div class="queue-title-row">
+              <span class="queue-case-no">${item.case_number || '-'}</span>
+              <span class="queue-debtor">${item.debtor_name || '-'}</span>
+            </div>
+            <span class="queue-phone">📄 ${item.memo ? item.memo.substring(0, 24) + '...' : '1차 서류 미비 검토 필요'}</span>
+          </div>
+          <button class="btn-queue-action" title="서류 완비로 변경">✔ 서류 완비</button>
+        `;
+
+        const actBtn = itemEl.querySelector('.btn-queue-action');
+        if (actBtn) {
+          actBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCaseFlag(item, { docs_completed: true }, `[${item.debtor_name}] 서류 완비 처리되었습니다.`);
+          });
+        }
+
+        itemEl.addEventListener('click', () => {
+          selectCase(item, true);
+        });
+
+        docsContainer.appendChild(itemEl);
+      });
+    }
+  }
+}
+
+// Update Case Status Flags (interview_done, docs_completed, report_submitted)
+async function updateCaseFlag(caseItem, flagData, successMsg) {
+  if (!caseItem || !caseItem.folder_path) return;
+  try {
+    if (window.pywebview && window.pywebview.api) {
+      const res = await window.pywebview.api.update_case_flags(caseItem.folder_path, flagData);
+      if (res.success) {
+        // Update local memory state
+        Object.assign(caseItem, flagData);
+        if (state.selectedCase && state.selectedCase.case_number === caseItem.case_number) {
+          Object.assign(state.selectedCase, flagData);
+          syncWorkspaceFlags(state.selectedCase);
+        }
+        renderDashboard();
+        showToast(successMsg || '상태가 업데이트되었습니다.');
+      } else {
+        showToast(`업데이트 실패: ${res.error}`);
+      }
+    }
+  } catch (err) {
+    console.error('Flag update error:', err);
+  }
+}
+
+// Synchronize Workspace Checkboxes with Selected Case State
+function syncWorkspaceFlags(caseItem) {
+  if (!caseItem) return;
+  const chkInterview = document.getElementById('flagInterviewDone');
+  const chkDocs = document.getElementById('flagDocsCompleted');
+  const chkReport = document.getElementById('flagReportSubmitted');
+  const selStatus = document.getElementById('caseQuickStatusSelect');
+
+  if (chkInterview) chkInterview.checked = !!caseItem.interview_done;
+  if (chkDocs) chkDocs.checked = !!caseItem.docs_completed;
+  if (chkReport) chkReport.checked = !!caseItem.report_submitted;
+  if (selStatus) selStatus.value = caseItem.status || '신규접수';
+}
+
+// 6. Select and Render Case in Workspace
+function selectCase(caseItem, switchToWorkspace = true) {
+  if (!caseItem) return;
+  state.selectedCase = caseItem;
+
+  // Header Bar
+  const hType = document.getElementById('headerCaseType');
+  if (hType) hType.textContent = caseItem.case_type === '법인파산' ? '법인' : '개인';
+  const hNo = document.getElementById('headerCaseNo');
+  if (hNo) hNo.textContent = caseItem.case_number || '-';
+  const hDebtor = document.getElementById('headerDebtorName');
+  if (hDebtor) hDebtor.textContent = caseItem.debtor_name || '-';
+
+  // Hero Card
+  const heroType = document.getElementById('heroCaseType');
+  if (heroType) heroType.textContent = caseItem.case_type || '개인파산';
+  
+  const heroBadge = document.getElementById('heroStatusBadge');
+  if (heroBadge) {
+    heroBadge.textContent = caseItem.status || '신규접수';
+    const cfg = STATUS_CONFIG[caseItem.status] || { color: '#0284c7', bg: '#e0f2fe' };
+    heroBadge.style.backgroundColor = cfg.bg;
+    heroBadge.style.color = cfg.color;
+  }
+
+  const heroTitle = document.getElementById('heroCaseTitle');
+  if (heroTitle) heroTitle.textContent = caseItem.case_number || '-';
+  const heroDebtor = document.getElementById('heroDebtorName');
+  if (heroDebtor) heroDebtor.textContent = caseItem.debtor_name || '-';
+
+  const metaCourt = document.getElementById('metaCourt');
+  if (metaCourt) metaCourt.textContent = caseItem.court || '-';
+  
+  const metaPhone = document.getElementById('metaPhone');
+  if (metaPhone) metaPhone.textContent = formatKoreanPhoneNumber(caseItem.phone || '010-0000-0000');
+  
+  const debtAmt = formatKoreanFullAmount(caseItem.total_debt || 0);
+  const metaDebt = document.getElementById('metaDebtAmount');
+  if (metaDebt) metaDebt.textContent = debtAmt.shortKorean;
+
+  const metaMeeting = document.getElementById('metaMeetingDate');
+  if (metaMeeting) {
+    if (caseItem.meeting_date) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const meetingDate = new Date(caseItem.meeting_date);
+      meetingDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((meetingDate - today) / (1000 * 60 * 60 * 24));
+      const ddayStr = diffDays >= 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
+      metaMeeting.textContent = `${caseItem.meeting_date} (${ddayStr})`;
+    } else {
+      metaMeeting.textContent = '기일 미정';
+    }
+  }
+
+  const metaMemo = document.getElementById('metaMemoText');
+  if (metaMemo) metaMemo.textContent = caseItem.memo || '기록된 메모가 없습니다.';
+
+  updatePipelineStepper(caseItem.status);
+  syncWorkspaceFlags(caseItem);
+  updateSubfolderFiles(caseItem.subfolders || {});
+
+  if (switchToWorkspace) {
+    switchView('workspace');
+  }
+}
+
+function updatePipelineStepper(currentStatus) {
+  const steps = document.querySelectorAll('#pipelineStepper .stepper-step');
+  const tracks = document.querySelectorAll('#pipelineStepper .stepper-track');
+  const targetIdx = PIPELINE_STATUSES.indexOf(currentStatus);
+
+  steps.forEach((step, idx) => {
+    step.classList.remove('completed', 'current');
+    if (targetIdx !== -1) {
+      if (idx < targetIdx) {
+        step.classList.add('completed');
+      } else if (idx === targetIdx) {
+        step.classList.add('current');
+      }
+    }
+  });
+
+  tracks.forEach((track, idx) => {
+    track.classList.remove('completed');
+    if (targetIdx !== -1 && idx < targetIdx) {
+      track.classList.add('completed');
+    }
+  });
+}
+
+function updateSubfolderFiles(subfolders) {
+  const map = {
+    '01_기본서류': { countEl: 'count01', listEl: 'fileList01' },
+    '02_금융내역': { countEl: 'count02', listEl: 'fileList02' },
+    '03_보정소명자료': { countEl: 'count03', listEl: 'fileList03' },
+    '04_보고서_산출물': { countEl: 'count04', listEl: 'fileList04' }
+  };
+
+  for (const [folderKey, elements] of Object.entries(map)) {
+    const files = subfolders[folderKey] || [];
+    const countEl = document.getElementById(elements.countEl);
+    const listEl = document.getElementById(elements.listEl);
+
+    if (countEl) countEl.textContent = `${files.length}건`;
+    if (listEl) {
+      if (files.length === 0) {
+        listEl.innerHTML = '<li class="empty-hint">파일이 없습니다</li>';
+      } else {
+        listEl.innerHTML = files.map(fileName => {
+          let icon = '📄';
+          if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) icon = '📊';
+          else if (fileName.endsWith('.hwpx') || fileName.endsWith('.hwp') || fileName.endsWith('.docx')) icon = '📝';
+          else if (fileName.endsWith('.pdf')) icon = '📕';
+          return `<li><span class="file-icon">${icon}</span><span class="file-name" title="${fileName}">${fileName}</span></li>`;
+        }).join('');
+      }
+    }
+  }
+}
+
+// 7. Update Top Pill Bar Text in Explorer
 function updateStatusFilterCounts() {
   let scopeCases = state.allCases;
   
-  // Dynamic Drill-down Scope:
   if (state.searchQuery.trim()) {
-    // If in search mode, count matching search results
     const q = state.searchQuery.trim();
     scopeCases = state.allCases.filter(c => 
       c && (
@@ -198,285 +586,282 @@ function updateStatusFilterCounts() {
         matchSearch(c.memo, q)
       )
     );
+  } else if (state.navPath.length === 2) {
+    const [selYear, selMonth] = state.navPath;
+    scopeCases = state.allCases.filter(c => c && c.year === selYear && c.month_category === selMonth);
   } else if (state.navPath.length === 1) {
-    // Year folder scope (e.g. 2026년 -> exactly 20 cases)
-    scopeCases = state.allCases.filter(c => c?.year === state.navPath[0]);
-  } else if (state.navPath.length >= 2) {
-    // Month folder scope (e.g. 2026년 / 02월_배정사건 -> exactly 10 cases)
-    scopeCases = state.allCases.filter(c => c?.year === state.navPath[0] && c?.month_category === state.navPath[1]);
+    const selYear = state.navPath[0];
+    scopeCases = state.allCases.filter(c => c && c.year === selYear);
   }
 
-  const counts = { ALL: 0, NEW: 0, DOC_CORRECTION: 0, BANK_ANALYSIS: 0, MEETING: 0, DIVIDEND: 0, CLOSED: 0 };
-  scopeCases.forEach(c => {
-    if (!c) return;
-    counts.ALL++;
-    if (matchesStatusFilter(c.status, 'NEW')) counts.NEW++;
-    if (matchesStatusFilter(c.status, 'DOC_CORRECTION')) counts.DOC_CORRECTION++;
-    if (matchesStatusFilter(c.status, 'BANK_ANALYSIS')) counts.BANK_ANALYSIS++;
-    if (matchesStatusFilter(c.status, 'MEETING')) counts.MEETING++;
-    if (matchesStatusFilter(c.status, 'DIVIDEND')) counts.DIVIDEND++;
-    if (matchesStatusFilter(c.status, 'CLOSED')) counts.CLOSED++;
-  });
-
-  const setPill = (id, text) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+  const counts = {
+    ALL: scopeCases.length,
+    NEW: scopeCases.filter(c => c.status === '신규접수').length,
+    DOC_CORRECTION: scopeCases.filter(c => c.status === '서류보정중').length,
+    BANK_ANALYSIS: scopeCases.filter(c => c.status === '통장분석중').length,
+    MEETING: scopeCases.filter(c => c.status === '채권자집회대기').length,
+    DIVIDEND: scopeCases.filter(c => c.status === '환가배당진행').length,
+    CLOSED: scopeCases.filter(c => c.status === '면책종결').length
   };
 
-  setPill('pill-all', `전체 : ${counts.ALL} 건`);
-  setPill('pill-new', `신규 접수 : ${counts.NEW} 건`);
-  setPill('pill-doc', `서류 보정 : ${counts.DOC_CORRECTION} 건`);
-  setPill('pill-bank', `통장 분석 : ${counts.BANK_ANALYSIS} 건`);
-  setPill('pill-meet', `집회·보고 : ${counts.MEETING} 건`);
-  setPill('pill-dividend', `환가·배당 : ${counts.DIVIDEND} 건`);
-  setPill('pill-closed', `면책·종결 : ${counts.CLOSED} 건`);
+  const pillAll = document.getElementById('pill-all');
+  if (pillAll) pillAll.textContent = `전체 : ${counts.ALL} 건`;
+  const pillNew = document.getElementById('pill-new');
+  if (pillNew) pillNew.textContent = `신규 접수 : ${counts.NEW} 건`;
+  const pillDoc = document.getElementById('pill-doc');
+  if (pillDoc) pillDoc.textContent = `서류 보정 : ${counts.DOC_CORRECTION} 건`;
+  const pillBank = document.getElementById('pill-bank');
+  if (pillBank) pillBank.textContent = `통장 분석 : ${counts.BANK_ANALYSIS} 건`;
+  const pillMeet = document.getElementById('pill-meet');
+  if (pillMeet) pillMeet.textContent = `집회·보고 : ${counts.MEETING} 건`;
+  const pillDiv = document.getElementById('pill-dividend');
+  if (pillDiv) pillDiv.textContent = `환가·배당 : ${counts.DIVIDEND} 건`;
+  const pillClosed = document.getElementById('pill-closed');
+  if (pillClosed) pillClosed.textContent = `면책·종결 : ${counts.CLOSED} 건`;
 }
 
-// 5. Render Case Explorer Modal
+// 8. Render 3x3 Explorer Modal Content
 function renderExplorer() {
-  const contentArea = document.getElementById('explorerContentArea');
-  const summaryText = document.getElementById('explorerSummaryText');
-  if (!contentArea) return;
-
-  // Always update dynamic pill counts on every navigation / drilldown
-  updateStatusFilterCounts();
-
-  contentArea.innerHTML = '';
+  const container = document.getElementById('explorerContentArea');
+  if (!container) return;
+  container.innerHTML = '';
   state.modalVisibleItems = [];
-  state.selectedIndex = -1; // Do not auto-select any card on load
-
-  const query = state.searchQuery.trim();
-  if (query) {
-    renderSearchMode(contentArea, summaryText, query);
-    return;
-  }
 
   renderBreadcrumbs();
+  updateStatusFilterCounts();
 
-  if (state.navPath.length === 0) {
-    renderYearCards(contentArea, summaryText);
-  } else if (state.navPath.length === 1) {
-    const year = state.navPath[0];
-    renderMonthCards(contentArea, summaryText, year);
-  } else if (state.navPath.length >= 2) {
-    const year = state.navPath[0];
-    const month = state.navPath[1];
-    renderMonthCases(contentArea, summaryText, year, month);
+  if (state.searchQuery.trim()) {
+    renderSearchResults(container);
+    return;
+  }
+
+  const level = state.navPath.length;
+  if (level === 0) {
+    renderYearCards(container);
+  } else if (level === 1) {
+    renderMonthCards(container);
+  } else {
+    renderCaseCards(container);
   }
 }
 
-// Breadcrumb Path Bar
 function renderBreadcrumbs() {
   const list = document.getElementById('breadcrumbsList');
-  const upBtn = document.getElementById('btnUpLevel');
+  const btnUp = document.getElementById('btnUpLevel');
   if (!list) return;
-  list.innerHTML = '';
 
-  const rootItem = document.createElement('span');
-  rootItem.className = 'nav-crumb' + (state.navPath.length === 0 ? ' active' : '');
-  rootItem.textContent = '📁 사건저장소';
-  rootItem.addEventListener('click', () => {
+  list.innerHTML = '';
+  const rootCrumb = document.createElement('span');
+  rootCrumb.className = 'nav-crumb' + (state.navPath.length === 0 && !state.searchQuery ? ' active' : '');
+  rootCrumb.textContent = '📁 사건저장소';
+  rootCrumb.addEventListener('click', () => {
     state.navPath = [];
+    state.searchQuery = '';
+    const input = document.getElementById('explorerSearchInput');
+    if (input) input.value = '';
+    state.selectedIndex = 0;
     renderExplorer();
   });
-  list.appendChild(rootItem);
+  list.appendChild(rootCrumb);
 
-  state.navPath.forEach((seg, idx) => {
-    const sep = document.createElement('span');
-    sep.className = 'crumb-sep';
-    sep.textContent = '›';
-    list.appendChild(sep);
+  if (state.searchQuery.trim()) {
+    const arrow = document.createElement('span');
+    arrow.className = 'nav-arrow';
+    arrow.textContent = '›';
+    list.appendChild(arrow);
 
-    const item = document.createElement('span');
-    item.className = 'nav-crumb' + (idx === state.navPath.length - 1 ? ' active' : '');
-    item.textContent = idx === 0 ? `📅 ${seg}` : `📆 ${seg.replace('_', ' ')}`;
-    item.addEventListener('click', () => {
-      state.navPath = state.navPath.slice(0, idx + 1);
-      renderExplorer();
-    });
-    list.appendChild(item);
-  });
+    const searchCrumb = document.createElement('span');
+    searchCrumb.className = 'nav-crumb active';
+    searchCrumb.textContent = `🔍 검색: "${state.searchQuery}"`;
+    list.appendChild(searchCrumb);
 
-  if (upBtn) upBtn.style.display = state.navPath.length > 0 ? 'inline-flex' : 'none';
-}
+    if (btnUp) btnUp.style.display = 'inline-flex';
+    return;
+  }
 
-// Level 0: Year Folder Cards (2 Columns)
-function renderYearCards(container, summary) {
-  const grid = document.createElement('div');
-  grid.className = 'mockup-folders-grid';
+  state.navPath.forEach((segment, idx) => {
+    const arrow = document.createElement('span');
+    arrow.className = 'nav-arrow';
+    arrow.textContent = '›';
+    list.appendChild(arrow);
 
-  let years = Array.from(new Set(state.allCases.map(c => c?.year).filter(y => y && y !== '기타')));
-  if (years.length === 0) years = ['2026년', '2025년'];
-  years.sort().reverse();
-
-  years.forEach((year) => {
-    const casesInYear = state.allCases.filter(c => c?.year === year);
+    const crumb = document.createElement('span');
+    const isLast = idx === state.navPath.length - 1;
+    crumb.className = 'nav-crumb' + (isLast ? ' active' : '');
+    crumb.textContent = segment.startsWith('0') || segment.startsWith('1') ? `🗓️ ${segment.replace('_', ' ')}` : `📁 ${segment}`;
     
-    const cNew = casesInYear.filter(c => matchesStatusFilter(c?.status, 'NEW')).length;
-    const cDoc = casesInYear.filter(c => matchesStatusFilter(c?.status, 'DOC_CORRECTION')).length;
-    const cBank = casesInYear.filter(c => matchesStatusFilter(c?.status, 'BANK_ANALYSIS')).length;
-    const cMeet = casesInYear.filter(c => matchesStatusFilter(c?.status, 'MEETING')).length;
-    const cDiv = casesInYear.filter(c => matchesStatusFilter(c?.status, 'DIVIDEND')).length;
-    const cClosed = casesInYear.filter(c => matchesStatusFilter(c?.status, 'CLOSED')).length;
-
-    const card = document.createElement('div');
-    card.className = 'folder-white-card';
-    card.innerHTML = `
-      <div class="folder-card-top">
-        <span class="folder-card-title">${year}</span>
-        <span class="folder-card-sub">/ 배정 ${casesInYear.length}건</span>
-      </div>
-      <div class="folder-breakdown-list">
-        <div class="breakdown-item"><span class="check-icon">✓</span> 신규 접수 ${cNew}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 서류 보정 ${cDoc}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 통장 분석 ${cBank}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 집회·보고 ${cMeet}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 환가·배당 ${cDiv}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 면책·종결 ${cClosed}건</div>
-      </div>
-    `;
-
-    card.addEventListener('click', () => {
-      state.navPath = [year];
+    crumb.addEventListener('click', () => {
+      state.navPath = state.navPath.slice(0, idx + 1);
+      state.selectedIndex = 0;
       renderExplorer();
     });
-
-    state.modalVisibleItems.push({ type: 'year', value: year, action: () => { state.navPath = [year]; renderExplorer(); } });
-    grid.appendChild(card);
+    list.appendChild(crumb);
   });
 
-  container.appendChild(grid);
-  if (summary) summary.textContent = `사건저장소 최상위 폴더 (${years.length}개 연도 / 총 ${state.allCases.length}건)`;
+  if (btnUp) {
+    btnUp.style.display = state.navPath.length > 0 ? 'inline-flex' : 'none';
+  }
 }
 
-// Level 1: Month Folder Cards (2 Columns)
-function renderMonthCards(container, summary, year) {
+function renderYearCards(container) {
+  const yearSet = new Set();
+  state.allCases.forEach(c => {
+    if (c?.year && c.year !== '기타') yearSet.add(c.year);
+  });
+  const years = Array.from(yearSet).sort().reverse();
+  if (years.length === 0) years.push('2026년');
+
   const grid = document.createElement('div');
   grid.className = 'mockup-folders-grid';
 
-  let months = Array.from(new Set(state.allCases.filter(c => c?.year === year).map(c => c?.month_category).filter(m => m && m !== '기타')));
-  if (months.length === 0) months = ['02월_배정사건', '01월_배정사건'];
-  months.sort().reverse();
+  years.forEach((yearStr) => {
+    const yearCases = state.allCases.filter(c => c?.year === yearStr && matchStatus(c.status, state.activeFilter));
+    const totalCount = yearCases.length;
 
-  months.forEach((month) => {
-    const casesInMonth = state.allCases.filter(c => c?.year === year && c?.month_category === month);
-
-    const cNew = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'NEW')).length;
-    const cDoc = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'DOC_CORRECTION')).length;
-    const cBank = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'BANK_ANALYSIS')).length;
-    const cMeet = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'MEETING')).length;
-    const cDiv = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'DIVIDEND')).length;
-    const cClosed = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'CLOSED')).length;
+    const breakdown = {
+      신규: yearCases.filter(c => c.status === '신규접수').length,
+      보정: yearCases.filter(c => c.status === '서류보정중').length,
+      통장: yearCases.filter(c => c.status === '통장분석중').length,
+      집회: yearCases.filter(c => c.status === '채권자집회대기').length,
+      환가: yearCases.filter(c => c.status === '환가배당진행').length,
+      종결: yearCases.filter(c => c.status === '면책종결').length
+    };
 
     const card = document.createElement('div');
     card.className = 'folder-white-card';
+
     card.innerHTML = `
       <div class="folder-card-top">
-        <span class="folder-card-title">${month.replace('_', ' ')}</span>
-        <span class="folder-card-sub">/ 배정 ${casesInMonth.length}건</span>
+        <span class="folder-card-title">${yearStr}</span>
+        <span class="folder-card-sub">/ 배정 ${totalCount}건</span>
       </div>
       <div class="folder-breakdown-list">
-        <div class="breakdown-item"><span class="check-icon">✓</span> 신규 접수 ${cNew}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 서류 보정 ${cDoc}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 통장 분석 ${cBank}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 집회·보고 ${cMeet}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 환가·배당 ${cDiv}건</div>
-        <div class="breakdown-item"><span class="check-icon">✓</span> 면책·종결 ${cClosed}건</div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>신규 접수 ${breakdown.신규}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>서류 보정 ${breakdown.보정}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>통장 분석 ${breakdown.통장}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>집회·보고 ${breakdown.집회}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>환가·배당 ${breakdown.환가}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>면책·종결 ${breakdown.종결}건</span></div>
       </div>
     `;
 
     card.addEventListener('click', () => {
-      state.navPath = [year, month];
+      state.navPath = [yearStr];
+      state.selectedIndex = 0;
       renderExplorer();
     });
 
-    state.modalVisibleItems.push({ type: 'month', value: month, action: () => { state.navPath = [year, month]; renderExplorer(); } });
+    state.modalVisibleItems.push(card);
     grid.appendChild(card);
   });
 
   container.appendChild(grid);
-  if (summary) summary.textContent = `${year} 배정 폴더 (${months.length}개 월)`;
 }
 
-// Level 2: 3x3 Case Cards Grid (3 Columns)
-function renderMonthCases(container, summary, year, month) {
-  const filteredCases = state.allCases.filter(c => 
-    c &&
-    c.year === year && 
-    c.month_category === month && 
-    matchesStatusFilter(c.status, state.activeFilter)
+function renderMonthCards(container) {
+  const selYear = state.navPath[0];
+  const months = ['01월_배정사건', '02월_배정사건', '03월_배정사건', '04월_배정사건', '05월_배정사건', '06월_배정사건', '07월_배정사건', '08월_배정사건', '09월_배정사건', '10월_배정사건', '11월_배정사건', '12월_배정사건'];
+
+  const grid = document.createElement('div');
+  grid.className = 'mockup-folders-grid';
+
+  months.forEach((monthFolder) => {
+    const monthCases = state.allCases.filter(c => c?.year === selYear && c?.month_category === monthFolder && matchStatus(c.status, state.activeFilter));
+    const totalCount = monthCases.length;
+    const monthDisplay = monthFolder.replace('_', ' ');
+
+    const breakdown = {
+      신규: monthCases.filter(c => c.status === '신규접수').length,
+      보정: monthCases.filter(c => c.status === '서류보정중').length,
+      통장: monthCases.filter(c => c.status === '통장분석중').length,
+      집회: monthCases.filter(c => c.status === '채권자집회대기').length,
+      환가: monthCases.filter(c => c.status === '환가배당진행').length,
+      종결: monthCases.filter(c => c.status === '면책종결').length
+    };
+
+    const card = document.createElement('div');
+    card.className = 'folder-white-card';
+
+    card.innerHTML = `
+      <div class="folder-card-top">
+        <span class="folder-card-title">${monthDisplay}</span>
+        <span class="folder-card-sub">/ 배정 ${totalCount}건</span>
+      </div>
+      <div class="folder-breakdown-list">
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>신규 접수 ${breakdown.신규}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>서류 보정 ${breakdown.보정}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>통장 분석 ${breakdown.통장}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>집회·보고 ${breakdown.집회}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>환가·배당 ${breakdown.환가}건</span></div>
+        <div class="breakdown-item"><span class="check-icon">✓</span><span>면책·종결 ${breakdown.종결}건</span></div>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      state.navPath = [selYear, monthFolder];
+      state.selectedIndex = 0;
+      renderExplorer();
+    });
+
+    state.modalVisibleItems.push(card);
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
+}
+
+function renderCaseCards(container) {
+  const [selYear, selMonth] = state.navPath;
+  const filtered = state.allCases.filter(c => c?.year === selYear && c?.month_category === selMonth && matchStatus(c.status, state.activeFilter));
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="padding:40px; text-align:center; color:#99f6e4; font-size:16px;">해당 배정 월에 등록된 사건이 없습니다.</div>';
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'mockup-case-grid-3col';
+
+  filtered.forEach((caseItem) => {
+    const card = createCaseCardElement(caseItem, false);
+    state.modalVisibleItems.push(card);
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
+}
+
+function renderSearchResults(container) {
+  const q = state.searchQuery.trim();
+  const searchFields = ['case_number', 'debtor_name', 'court', 'phone'];
+  
+  const filtered = state.allCases.filter(c => 
+    c && (
+      searchFields.some(f => matchSearch(c[f], q)) ||
+      matchSearch(c.status, q)
+    ) && matchStatus(c.status, state.activeFilter)
   );
 
-  if (filteredCases.length === 0) {
-    container.innerHTML = `
-      <div style="padding: 40px; text-align: center; color: #ffffff; font-size: 15px; font-weight: 600;">
-        현재 선택된 [${state.activeFilter}] 상태 필터에 해당하는 사건이 이 폴더에 없습니다.
-      </div>
-    `;
-    if (summary) summary.textContent = `${year} > ${month.replace('_', ' ')} (0건)`;
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="padding:40px; text-align:center; color:#99f6e4; font-size:16px;">"${q}" 에 일치하는 사건이 없습니다.</div>`;
     return;
   }
 
   const grid = document.createElement('div');
   grid.className = 'mockup-case-grid-3col';
 
-  filteredCases.forEach((caseItem) => {
-    const card = createCaseCardElement(caseItem, false);
-    state.modalVisibleItems.push({ type: 'case', value: caseItem, action: () => { selectCase(caseItem); closeExplorerModal(); } });
+  filtered.forEach((caseItem) => {
+    const card = createCaseCardElement(caseItem, true);
+    state.modalVisibleItems.push(card);
     grid.appendChild(card);
   });
 
   container.appendChild(grid);
-  if (summary) summary.textContent = `${year} > ${month.replace('_', ' ')} (총 ${filteredCases.length}건)`;
 }
 
-// Search Mode (Render matching Case Cards in 3 Columns)
-function renderSearchMode(container, summary, query) {
-  const list = document.getElementById('breadcrumbsList');
-  if (list) {
-    list.innerHTML = `<span class="nav-crumb active">🔍 검색 결과: "${query}"</span>`;
-  }
-  const upBtn = document.getElementById('btnUpLevel');
-  if (upBtn) upBtn.style.display = 'none';
-
-  const matches = state.allCases.filter(c => {
-    if (!c) return false;
-    const matchesQuery = (
-      matchSearch(c.case_number, query) ||
-      matchSearch(c.debtor_name, query) ||
-      matchSearch(c.phone, query) ||
-      matchSearch(c.court, query)
-    );
-    const matchesStatus = matchesStatusFilter(c.status, state.activeFilter);
-    return matchesQuery && matchesStatus;
-  });
-
-  if (matches.length === 0) {
-    container.innerHTML = `
-      <div style="padding: 40px; text-align: center; color: #ffffff; font-size: 15px; font-weight: 600;">
-        "${query}" 검색어와 일치하는 사건이 없습니다.
-      </div>
-    `;
-    if (summary) summary.textContent = `검색 결과 0건`;
-    return;
-  }
-
-  const grid = document.createElement('div');
-  grid.className = 'mockup-case-grid-3col';
-
-  matches.forEach((caseItem) => {
-    const card = createCaseCardElement(caseItem, false, true);
-    state.modalVisibleItems.push({ type: 'case', value: caseItem, action: () => { selectCase(caseItem); closeExplorerModal(); } });
-    grid.appendChild(card);
-  });
-
-  container.appendChild(grid);
-  if (summary) summary.textContent = `검색 결과 총 ${matches.length}건`;
-}
-
-// Create Case Card (3-Column Optimized)
-function createCaseCardElement(caseItem, isSelected = false, showPath = false) {
+function createCaseCardElement(caseItem, showPath = false) {
   const card = document.createElement('div');
+  const isSelected = state.selectedCase && state.selectedCase.case_number === caseItem?.case_number;
   card.className = 'case-white-card' + (isSelected ? ' selected' : '');
   
   const cfg = STATUS_CONFIG[caseItem?.status] || { color: '#0284c7', bg: '#e0f2fe', label: caseItem?.status || '신규' };
@@ -526,306 +911,241 @@ function createCaseCardElement(caseItem, isSelected = false, showPath = false) {
 
   // Card Click Handler
   card.addEventListener('click', () => {
-    selectCase(caseItem);
+    selectCase(caseItem, true);
     closeExplorerModal();
   });
 
   return card;
 }
 
-// 6. Select and Render Case in Workspace
-function selectCase(caseItem) {
-  if (!caseItem) return;
-  state.selectedCase = caseItem;
-
-  // Header Bar
-  const hType = document.getElementById('headerCaseType');
-  if (hType) hType.textContent = caseItem.case_type === '법인파산' ? '법인' : '개인';
-  const hNo = document.getElementById('headerCaseNo');
-  if (hNo) hNo.textContent = caseItem.case_number || '-';
-  const hDebtor = document.getElementById('headerDebtorName');
-  if (hDebtor) hDebtor.textContent = caseItem.debtor_name || '-';
-
-  // Hero Card
-  const heroType = document.getElementById('heroCaseType');
-  if (heroType) heroType.textContent = caseItem.case_type || '개인파산';
-  
-  const heroBadge = document.getElementById('heroStatusBadge');
-  if (heroBadge) {
-    heroBadge.textContent = caseItem.status || '신규접수';
-    const cfg = STATUS_CONFIG[caseItem.status] || { color: '#0284c7', bg: '#e0f2fe' };
-    heroBadge.style.backgroundColor = cfg.bg;
-    heroBadge.style.color = cfg.color;
-  }
-
-  const heroTitle = document.getElementById('heroCaseTitle');
-  if (heroTitle) heroTitle.textContent = caseItem.case_number || '-';
-  const heroDebtor = document.getElementById('heroDebtorName');
-  if (heroDebtor) heroDebtor.textContent = caseItem.debtor_name || '-';
-
-  const metaCourt = document.getElementById('metaCourt');
-  if (metaCourt) metaCourt.textContent = caseItem.court || '-';
-  const metaAssigned = document.getElementById('metaAssignedDate');
-  if (metaAssigned) metaAssigned.textContent = caseItem.assigned_date || '-';
-  
-  const debtWon = caseItem.total_debt || 0;
-  let formattedDebt = debtWon >= 100000000 
-    ? `${(debtWon / 100000000).toLocaleString('ko-KR', { maximumFractionDigits: 1 })}억 원`
-    : `${(debtWon / 10000).toLocaleString('ko-KR')}만 원`;
-  const metaDebt = document.getElementById('metaDebtAmount');
-  if (metaDebt) metaDebt.textContent = formattedDebt;
-
-  const metaMeeting = document.getElementById('metaMeetingDate');
-  if (metaMeeting) {
-    if (caseItem.meeting_date) {
-      const today = new Date();
-      const meetingDate = new Date(caseItem.meeting_date);
-      const diffDays = Math.ceil((meetingDate - today) / (1000 * 60 * 60 * 24));
-      const ddayStr = diffDays >= 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
-      metaMeeting.textContent = `${caseItem.meeting_date} (${ddayStr})`;
-    } else {
-      metaMeeting.textContent = '기일 미정';
-    }
-  }
-
-  const metaMemo = document.getElementById('metaMemoText');
-  if (metaMemo) metaMemo.textContent = caseItem.memo || '기록된 메모가 없습니다.';
-
-  updatePipelineStepper(caseItem.status);
-  const folderPathDisplay = document.getElementById('currentFolderPathDisplay');
-  if (folderPathDisplay) folderPathDisplay.textContent = caseItem.folder_path || '';
-  updateSubfolderFiles(caseItem.subfolders || {});
-}
-
-function updatePipelineStepper(currentStatus) {
-  const steps = ['신규접수', '서류보정중', '통장분석중', '채권자집회대기', '환가배당진행', '면책종결'];
-  const currentIndex = steps.indexOf(currentStatus);
-
-  document.querySelectorAll('.stepper-step').forEach((item) => {
-    const stepName = item.getAttribute('data-step');
-    const stepIndex = steps.indexOf(stepName);
-    item.classList.remove('active', 'completed');
-
-    if (stepIndex === currentIndex) {
-      item.classList.add('active');
-    } else if (stepIndex < currentIndex) {
-      item.classList.add('completed');
-    }
-  });
-}
-
-function updateSubfolderFiles(subfolders) {
-  const map = {
-    '01_기본서류': { countId: 'count-01', listId: 'files-01', hint: '기본 서류 보관 위치' },
-    '02_금융내역': { countId: 'count-02', listId: 'files-02', hint: '통장 엑셀/PDF를 드래그하여 저장' },
-    '03_보정소명자료': { countId: 'count-03', listId: 'files-03', hint: '보정서 및 소명 영수증 보관' },
-    '04_보고서_산출물': { countId: 'count-04', listId: 'files-04', hint: 'HWPX 보고서 & 배당표 출력 위치' }
-  };
-
-  Object.keys(map).forEach(subName => {
-    const info = map[subName];
-    const files = (subfolders && subfolders[subName]) || [];
-    const countEl = document.getElementById(info.countId);
-    const listEl = document.getElementById(info.listId);
-
-    if (countEl) countEl.textContent = `${files.length}`;
-    if (listEl) {
-      listEl.innerHTML = '';
-      if (files.length === 0) {
-        listEl.innerHTML = `<li class="empty-state-hint">${info.hint}</li>`;
-      } else {
-        files.forEach(f => {
-          const li = document.createElement('li');
-          li.className = 'file-item-row';
-          li.textContent = f;
-          listEl.appendChild(li);
-        });
-      }
-    }
-  });
-}
-
-// 7. Event Listeners & Modals
+// 9. Event Listeners Setup
 function initEventListeners() {
-  const modalOverlay = document.getElementById('explorerModalOverlay');
-  const searchInput = document.getElementById('explorerSearchInput');
-  const clearSearchBtn = document.getElementById('modalClearSearchBtn');
-
-  const openModal = () => {
-    if (!modalOverlay) return;
-    modalOverlay.classList.add('open');
-    if (searchInput) {
-      searchInput.value = '';
-      state.searchQuery = '';
-      if (clearSearchBtn) clearSearchBtn.style.display = 'none';
-      renderExplorer();
-      setTimeout(() => searchInput.focus(), 60);
-    }
-  };
-
-  window.closeExplorerModal = () => {
-    if (modalOverlay) modalOverlay.classList.remove('open');
-  };
-
-  const openExplorerBtn = document.getElementById('openExplorerBtn');
-  if (openExplorerBtn && !openExplorerBtn.dataset.bound) {
-    openExplorerBtn.dataset.bound = 'true';
-    openExplorerBtn.addEventListener('click', openModal);
+  // Navigation: Dashboard Tab
+  const navDashBtn = document.getElementById('navDashboardBtn');
+  if (navDashBtn) {
+    navDashBtn.addEventListener('click', () => switchView('dashboard'));
   }
+
+  // Navigation: Back to Dashboard Button in Workspace
+  const backToDashBtn = document.getElementById('backToDashBtn');
+  if (backToDashBtn) {
+    backToDashBtn.addEventListener('click', () => switchView('dashboard'));
+  }
+
+  // Navigation: Header Case Badge (Switch to workspace)
   const headerCaseBadge = document.getElementById('headerCaseBadge');
-  if (headerCaseBadge && !headerCaseBadge.dataset.bound) {
-    headerCaseBadge.dataset.bound = 'true';
-    headerCaseBadge.addEventListener('click', openModal);
+  if (headerCaseBadge) {
+    headerCaseBadge.addEventListener('click', () => switchView('workspace'));
   }
+
+  // Modal Triggers: 3x3 Explorer Modal
+  const openExplorerBtn = document.getElementById('openExplorerBtn');
+  if (openExplorerBtn) openExplorerBtn.addEventListener('click', openExplorerModal);
+
+  const dashOpenExplorerBtn = document.getElementById('dashOpenExplorerBtn');
+  if (dashOpenExplorerBtn) dashOpenExplorerBtn.addEventListener('click', openExplorerModal);
 
   const closeExplorerBtn = document.getElementById('closeExplorerBtn');
   if (closeExplorerBtn) closeExplorerBtn.addEventListener('click', closeExplorerModal);
-  if (modalOverlay) {
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) closeExplorerModal();
+
+  const overlay = document.getElementById('explorerModalOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeExplorerModal();
     });
   }
 
-  const btnUp = document.getElementById('btnUpLevel');
-  if (btnUp) {
-    btnUp.addEventListener('click', () => {
-      if (state.navPath.length > 0) {
-        state.navPath.pop();
-        renderExplorer();
-      }
-    });
-  }
+  // Modal Triggers: New Case Modal
+  const headerNewBtn = document.getElementById('headerNewCaseBtn');
+  if (headerNewBtn) headerNewBtn.addEventListener('click', openNewCaseModal);
 
-  // 5 Status Pill Buttons
-  document.querySelectorAll('.mockup-pill-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.mockup-pill-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.activeFilter = btn.getAttribute('data-status');
-      renderExplorer();
-    });
-  });
+  const openNewCaseBtn = document.getElementById('openNewCaseModalBtn');
+  if (openNewCaseBtn) openNewCaseBtn.addEventListener('click', openNewCaseModal);
+
+  // Explorer Search Box
+  const searchInput = document.getElementById('explorerSearchInput');
+  const clearBtn = document.getElementById('modalClearSearchBtn');
 
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       state.searchQuery = e.target.value;
-      if (clearSearchBtn) clearSearchBtn.style.display = state.searchQuery ? 'block' : 'none';
+      if (clearBtn) clearBtn.style.display = state.searchQuery ? 'block' : 'none';
+      state.selectedIndex = 0;
       renderExplorer();
     });
   }
 
-  if (clearSearchBtn) {
-    clearSearchBtn.addEventListener('click', () => {
-      if (searchInput) searchInput.value = '';
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
       state.searchQuery = '';
-      clearSearchBtn.style.display = 'none';
+      if (searchInput) searchInput.value = '';
+      clearBtn.style.display = 'none';
+      state.selectedIndex = 0;
       renderExplorer();
     });
   }
 
-  window.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-      e.preventDefault();
-      if (modalOverlay && modalOverlay.classList.contains('open')) {
-        closeExplorerModal();
-      } else {
-        openModal();
+  // Up Navigation Button
+  const btnUp = document.getElementById('btnUpLevel');
+  if (btnUp) {
+    btnUp.addEventListener('click', () => {
+      if (state.searchQuery.trim()) {
+        state.searchQuery = '';
+        if (searchInput) searchInput.value = '';
+        if (clearBtn) clearBtn.style.display = 'none';
+      } else if (state.navPath.length > 0) {
+        state.navPath.pop();
       }
-    }
-    if (e.key === 'Escape') {
-      const newModal = document.getElementById('newCaseModal');
-      const moveModal = document.getElementById('moveDateModal');
-      if (newModal && newModal.classList.contains('open')) {
-        newModal.classList.remove('open');
-      } else if (moveModal && moveModal.classList.contains('open')) {
-        moveModal.classList.remove('open');
-      } else if (modalOverlay && modalOverlay.classList.contains('open')) {
-        closeExplorerModal();
-      }
-    }
-  });
-
-  // Arrow Keys Navigation
-  if (searchInput) {
-    searchInput.addEventListener('keydown', (e) => {
-      const items = document.querySelectorAll('.folder-white-card, .case-white-card');
-      if (items.length === 0) return;
-
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        state.selectedIndex = (state.selectedIndex + 1) % items.length;
-        highlightSelectedIndex(items);
-      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-        e.preventDefault();
-        state.selectedIndex = (state.selectedIndex - 1 + items.length) % items.length;
-        highlightSelectedIndex(items);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (state.modalVisibleItems[state.selectedIndex]) {
-          state.modalVisibleItems[state.selectedIndex].action();
-        }
-      }
+      state.selectedIndex = 0;
+      renderExplorer();
     });
   }
 
-  // Open Folder
-  const handleOpenCurrentFolder = () => {
-    if (state.selectedCase && state.selectedCase.folder_path) {
-      openFolderOnDisk(state.selectedCase.folder_path);
-    }
-  };
-  ['openCurrentFolderBtn', 'heroOpenFolderBtn', 'folderExploreBtn'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && !el.dataset.bound) {
-      el.dataset.bound = 'true';
-      el.addEventListener('click', handleOpenCurrentFolder);
-    }
+  // Filter Pill Buttons in Explorer
+  const pillBtns = document.querySelectorAll('.mockup-pill-btn');
+  pillBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      pillBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.activeFilter = btn.getAttribute('data-status');
+      state.selectedIndex = 0;
+      renderExplorer();
+    });
   });
 
-  // Copy Buttons
+  // Global Keyboard Shortcuts
+  window.addEventListener('keydown', handleGlobalKeydown);
+
+  // Workspace Action Buttons
   const copyCaseNoBtn = document.getElementById('copyCaseNoBtn');
   if (copyCaseNoBtn) {
     copyCaseNoBtn.addEventListener('click', () => {
       if (state.selectedCase?.case_number) {
         navigator.clipboard.writeText(state.selectedCase.case_number);
-        showToast(`사건번호 복사됨: ${state.selectedCase.case_number}`);
+        showToast('📋 사건번호가 복사되었습니다.');
       }
     });
   }
+
   const copyDebtorBtn = document.getElementById('copyDebtorBtn');
   if (copyDebtorBtn) {
     copyDebtorBtn.addEventListener('click', () => {
       if (state.selectedCase?.debtor_name) {
         navigator.clipboard.writeText(state.selectedCase.debtor_name);
-        showToast(`채무자명 복사됨: ${state.selectedCase.debtor_name}`);
+        showToast('📋 채무자명이 복사되었습니다.');
       }
     });
   }
 
-  // Half Screen Mode Toggle
-  const halfBtn = document.getElementById('fitHalfScreenBtn');
-  if (halfBtn) {
-    halfBtn.addEventListener('click', () => {
-      const container = document.getElementById('appContainer');
-      if (container) {
-        container.classList.toggle('half-screen-fixed');
-        const isHalf = container.classList.contains('half-screen-fixed');
-        showToast(isHalf ? '반 화면(너비 960px) 고정 모드' : '전체 창 확장 모드');
+  const openFolderBtn = document.getElementById('heroOpenFolderBtn');
+  if (openFolderBtn) {
+    openFolderBtn.addEventListener('click', () => {
+      if (state.selectedCase?.folder_path) {
+        openFolderOnDisk(state.selectedCase.folder_path);
       }
     });
   }
 
-  // Setup New Case Registration Modal
+  const openCurFolderHeaderBtn = document.getElementById('openCurrentFolderBtn');
+  if (openCurFolderHeaderBtn) {
+    openCurFolderHeaderBtn.addEventListener('click', () => {
+      if (state.selectedCase?.folder_path) {
+        openFolderOnDisk(state.selectedCase.folder_path);
+      }
+    });
+  }
+
+  // Workspace Checkboxes & Quick Status Select
+  const chkInterview = document.getElementById('flagInterviewDone');
+  if (chkInterview) {
+    chkInterview.addEventListener('change', () => {
+      if (state.selectedCase) {
+        updateCaseFlag(state.selectedCase, { interview_done: chkInterview.checked }, '상담 완료 상태가 변경되었습니다.');
+      }
+    });
+  }
+
+  const chkDocs = document.getElementById('flagDocsCompleted');
+  if (chkDocs) {
+    chkDocs.addEventListener('change', () => {
+      if (state.selectedCase) {
+        updateCaseFlag(state.selectedCase, { docs_completed: chkDocs.checked }, '서류 완비 상태가 변경되었습니다.');
+      }
+    });
+  }
+
+  const chkReport = document.getElementById('flagReportSubmitted');
+  if (chkReport) {
+    chkReport.addEventListener('change', () => {
+      if (state.selectedCase) {
+        updateCaseFlag(state.selectedCase, { report_submitted: chkReport.checked }, '보고서 제출 상태가 변경되었습니다.');
+      }
+    });
+  }
+
+  const selQuickStatus = document.getElementById('caseQuickStatusSelect');
+  if (selQuickStatus) {
+    selQuickStatus.addEventListener('change', () => {
+      if (state.selectedCase) {
+        updateCaseFlag(state.selectedCase, { status: selQuickStatus.value }, `사건 상태가 [${selQuickStatus.value}]로 변경되었습니다.`);
+      }
+    });
+  }
+
   setupNewCaseModal();
-
-  // Setup Move Date Modal
   setupMoveDateModal();
 }
 
-// 8. New Case Registration Modal Handling
+function openExplorerModal() {
+  const overlay = document.getElementById('explorerModalOverlay');
+  if (overlay) {
+    overlay.classList.add('open');
+    state.selectedIndex = 0;
+    renderExplorer();
+    setTimeout(() => {
+      const input = document.getElementById('explorerSearchInput');
+      if (input) input.focus();
+    }, 100);
+  }
+}
+
+function closeExplorerModal() {
+  const overlay = document.getElementById('explorerModalOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function handleGlobalKeydown(e) {
+  const overlay = document.getElementById('explorerModalOverlay');
+  const isExplorerOpen = overlay && overlay.classList.contains('open');
+
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    if (isExplorerOpen) closeExplorerModal();
+    else openExplorerModal();
+    return;
+  }
+
+  if (e.key === 'Escape') {
+    if (isExplorerOpen) {
+      e.preventDefault();
+      closeExplorerModal();
+      return;
+    }
+  }
+}
+
+// 10. New Case Registration Modal Handling
+function openNewCaseModal() {
+  const modal = document.getElementById('newCaseModal');
+  if (modal) {
+    modal.classList.add('open');
+    const numInput = document.getElementById('newCaseNumber');
+    if (numInput) setTimeout(() => numInput.focus(), 60);
+  }
+}
+
 function setupNewCaseModal() {
   const modal = document.getElementById('newCaseModal');
-  const openBtn = document.getElementById('openNewCaseModalBtn');
   const closeBtn = document.getElementById('closeNewCaseModalBtn');
   const cancelBtn = document.getElementById('cancelNewCaseBtn');
   const form = document.getElementById('newCaseForm');
@@ -840,7 +1160,7 @@ function setupNewCaseModal() {
     });
   }
 
-  // 2. Live debt formatting with commas and clean Korean reading (e.g. 💰 1억 2,345만 6,789 원)
+  // 2. Live debt formatting with commas and clean Korean reading (e.g. 💰 1억 2,345만 6,789원)
   const debtInput = document.getElementById('newCaseTotalDebt');
   const debtPreview = document.getElementById('koreanDebtPreview');
 
@@ -850,56 +1170,17 @@ function setupNewCaseModal() {
     if (rawVal) {
       const num = parseInt(rawVal, 10);
       debtInput.value = num.toLocaleString('ko-KR');
-      const amt = formatKoreanFullAmount(num);
-      debtPreview.textContent = `💰 ${amt.shortKorean}`;
+      const full = formatKoreanFullAmount(num);
+      debtPreview.textContent = `💰 ${full.shortKorean}`;
     } else {
-      debtInput.value = '';
-      debtPreview.textContent = `💰 0원`;
+      debtPreview.textContent = '💰 0원';
     }
   };
 
   if (debtInput && !debtInput.dataset.bound) {
     debtInput.dataset.bound = 'true';
     debtInput.addEventListener('input', handleDebtInput);
-  }
-
-  if (openBtn) {
-    openBtn.addEventListener('click', () => {
-      // Default to today's current Year and Month
-      const today = new Date();
-      const curYear = String(today.getFullYear());
-      const curMonth = String(today.getMonth() + 1).padStart(2, '0');
-
-      const yearEl = document.getElementById('newCaseYear');
-      if (yearEl) {
-        if (!yearEl.querySelector(`option[value="${curYear}"]`)) {
-          const opt = document.createElement('option');
-          opt.value = curYear;
-          opt.textContent = `${curYear}년`;
-          yearEl.appendChild(opt);
-        }
-        yearEl.value = curYear;
-      }
-
-      const monthEl = document.getElementById('newCaseMonth');
-      if (monthEl) monthEl.value = curMonth;
-
-      const courtEl = document.getElementById('newCaseCourt');
-      if (courtEl) courtEl.value = '인천지방법원';
-
-      if (phoneInput && !phoneInput.value) {
-        phoneInput.value = '010-0000-0000';
-      }
-
-      if (debtInput) {
-        debtInput.value = '100,000,000';
-        handleDebtInput();
-      }
-
-      modal.classList.add('open');
-      const numInput = document.getElementById('newCaseNumber');
-      if (numInput) setTimeout(() => numInput.focus(), 60);
-    });
+    debtInput.addEventListener('change', handleDebtInput);
   }
 
   const closeModal = () => modal.classList.remove('open');
@@ -937,9 +1218,9 @@ function setupNewCaseModal() {
         if (res.success) {
           showToast(`✅ [${caseData.case_number}] ${caseData.debtor_name} 등록 및 폴더 생성 완료!`);
           closeModal();
-          // Reload cases and navigate to the created month folder
           await loadCases(false);
           state.navPath = [`${caseData.year}년`, `${caseData.month.padStart(2, '0')}월_배정사건`];
+          renderDashboard();
           renderExplorer();
         } else {
           alert(`사건 생성 실패:\n${res.error}`);
@@ -951,7 +1232,7 @@ function setupNewCaseModal() {
   });
 }
 
-// 9. Move Case Year/Month (Folder Relocation) Handling
+// 11. Move Case Year/Month (Folder Relocation) Handling
 function setupMoveDateModal() {
   const modal = document.getElementById('moveDateModal');
   const closeBtn = document.getElementById('closeMoveDateModalBtn');
@@ -973,7 +1254,6 @@ function setupMoveDateModal() {
     e.preventDefault();
     if (!state.caseToMove) return;
 
-    // Capture target case properties in local variables before any async/modal changes
     const targetCase = state.caseToMove;
     const targetCaseNo = targetCase?.case_number || '';
     const targetDebtorName = targetCase?.debtor_name || '';
@@ -995,13 +1275,11 @@ function setupMoveDateModal() {
         if (res.success) {
           closeModal();
           showToast(`🚚 [${targetCaseNo}] ${newYear}년 ${newMonth}월로 이동 완료!`);
-          
-          // Safely reload cases and navigate to new month
           await loadCases(true);
           state.navPath = [`${newYear}년`, `${newMonth.padStart(2, '0')}월_배정사건`];
+          renderDashboard();
           renderExplorer();
         } else {
-          // File locked or permission error alert
           alert(`⚠️ 폴더 이동 중단!\n\n${res.error}`);
         }
       }
@@ -1032,17 +1310,7 @@ function openMoveDateModal(caseItem) {
   if (modal) modal.classList.add('open');
 }
 
-function highlightSelectedIndex(items) {
-  items.forEach((item, idx) => {
-    const isSel = (idx === state.selectedIndex && state.selectedIndex >= 0);
-    item.classList.toggle('selected', isSel);
-    if (isSel) {
-      item.scrollIntoView({ block: 'nearest' });
-    }
-  });
-}
-
-// 10. Open Folder via Python Desktop API
+// 12. Open Folder via Python Desktop API
 async function openFolderOnDisk(folderPath) {
   try {
     if (window.pywebview && window.pywebview.api) {
@@ -1058,7 +1326,7 @@ async function openFolderOnDisk(folderPath) {
   }
 }
 
-// 11. Toast Notification
+// 13. Toast Notification
 let toastTimer = null;
 function showToast(msg) {
   const toast = document.getElementById('toast');
@@ -1070,5 +1338,3 @@ function showToast(msg) {
     toast.classList.remove('show');
   }, 2500);
 }
-
-

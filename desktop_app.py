@@ -39,6 +39,15 @@ class DesktopAPI:
                         if not meta or not isinstance(meta, dict):
                             continue
                             
+                        # Status flags fallback for backward compatibility
+                        status_val = meta.get("status", "신규접수")
+                        if "interview_done" not in meta:
+                            meta["interview_done"] = False if status_val in ["신규접수", "서류보정중"] else True
+                        if "docs_completed" not in meta:
+                            meta["docs_completed"] = False if status_val in ["신규접수", "서류보정중"] else True
+                        if "report_submitted" not in meta:
+                            meta["report_submitted"] = True if status_val in ["환가배당진행", "면책종결"] else False
+                        
                         # Subfolder file scan
                         subfolders = {}
                         for sub in ["01_기본서류", "02_금융내역", "03_보정소명자료", "04_보고서_산출물"]:
@@ -64,6 +73,27 @@ class DesktopAPI:
                     except Exception as e:
                         print(f"Error reading meta {meta_path}: {e}")
         return {"total": len(cases), "cases": cases}
+
+    def update_case_flags(self, folder_path, flags):
+        """대시보드 및 상세화면에서 상담완료/서류완비/보고서제출 상태 실시간 갱신"""
+        try:
+            if not folder_path or not os.path.exists(folder_path):
+                return {"success": False, "error": "해당 사건 폴더를 찾을 수 없습니다."}
+            meta_path = os.path.join(folder_path, "사건메타정보.json")
+            meta = {}
+            if os.path.exists(meta_path):
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+            
+            for k, v in flags.items():
+                meta[k] = v
+                
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(meta, f, ensure_ascii=False, indent=2)
+                
+            return {"success": True, "meta": meta}
+        except Exception as e:
+            return {"success": False, "error": f"상태 저장 실패: {str(e)}"}
 
     def create_new_case(self, case_data):
         """신규 사건 등록: 년도/월 폴더 자동생성 및 4대 표준 서류 폴더 + 메타데이터 자동 구성"""
@@ -98,7 +128,7 @@ class DesktopAPI:
             for sub in standard_subs:
                 os.makedirs(os.path.join(target_dir, sub), exist_ok=True)
                 
-            # 3. Create 사건메타정보.json
+            # 3. Create 사건메타정보.json (신규 등록 시 상담필요=True(interview_done=False), 서류미완료=True)
             meta = {
                 "case_number": case_number,
                 "debtor_name": debtor_name,
@@ -109,6 +139,9 @@ class DesktopAPI:
                 "meeting_date": case_data.get("meeting_date", ""),
                 "total_debt": int(case_data.get("total_debt", 0)),
                 "phone": case_data.get("phone", "010-0000-0000"),
+                "interview_done": False,
+                "docs_completed": False,
+                "report_submitted": False,
                 "memo": case_data.get("memo", "신규 등록된 사건입니다. 1차 제출 서류 완비 여부 검토가 필요합니다.")
             }
             
