@@ -992,9 +992,14 @@ body {
   position: relative;
 }
 
-.case-white-card:hover, .case-white-card.selected {
+.case-white-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--card-shadow-hover);
+}
+
+.case-white-card.selected {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25), var(--card-shadow);
 }
 
 .case-card-header {

@@ -219,7 +219,7 @@ function renderExplorer() {
 
   contentArea.innerHTML = '';
   state.modalVisibleItems = [];
-  state.selectedIndex = 0;
+  state.selectedIndex = -1; // Do not auto-select any card on load
 
   const query = state.searchQuery.trim();
   if (query) {
@@ -285,7 +285,7 @@ function renderYearCards(container, summary) {
   if (years.length === 0) years = ['2026년', '2025년'];
   years.sort().reverse();
 
-  years.forEach((year, idx) => {
+  years.forEach((year) => {
     const casesInYear = state.allCases.filter(c => c?.year === year);
     
     const cNew = casesInYear.filter(c => matchesStatusFilter(c?.status, 'NEW')).length;
@@ -296,7 +296,7 @@ function renderYearCards(container, summary) {
     const cClosed = casesInYear.filter(c => matchesStatusFilter(c?.status, 'CLOSED')).length;
 
     const card = document.createElement('div');
-    card.className = 'folder-white-card' + (idx === 0 ? ' selected' : '');
+    card.className = 'folder-white-card';
     card.innerHTML = `
       <div class="folder-card-top">
         <span class="folder-card-title">${year}</span>
@@ -334,7 +334,7 @@ function renderMonthCards(container, summary, year) {
   if (months.length === 0) months = ['02월_배정사건', '01월_배정사건'];
   months.sort().reverse();
 
-  months.forEach((month, idx) => {
+  months.forEach((month) => {
     const casesInMonth = state.allCases.filter(c => c?.year === year && c?.month_category === month);
 
     const cNew = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'NEW')).length;
@@ -345,7 +345,7 @@ function renderMonthCards(container, summary, year) {
     const cClosed = casesInMonth.filter(c => matchesStatusFilter(c?.status, 'CLOSED')).length;
 
     const card = document.createElement('div');
-    card.className = 'folder-white-card' + (idx === 0 ? ' selected' : '');
+    card.className = 'folder-white-card';
     card.innerHTML = `
       <div class="folder-card-top">
         <span class="folder-card-title">${month.replace('_', ' ')}</span>
@@ -396,8 +396,8 @@ function renderMonthCases(container, summary, year, month) {
   const grid = document.createElement('div');
   grid.className = 'mockup-case-grid-3col';
 
-  filteredCases.forEach((caseItem, idx) => {
-    const card = createCaseCardElement(caseItem, idx === 0);
+  filteredCases.forEach((caseItem) => {
+    const card = createCaseCardElement(caseItem, false);
     state.modalVisibleItems.push({ type: 'case', value: caseItem, action: () => { selectCase(caseItem); closeExplorerModal(); } });
     grid.appendChild(card);
   });
@@ -441,8 +441,8 @@ function renderSearchMode(container, summary, query) {
   const grid = document.createElement('div');
   grid.className = 'mockup-case-grid-3col';
 
-  matches.forEach((caseItem, idx) => {
-    const card = createCaseCardElement(caseItem, idx === 0, true);
+  matches.forEach((caseItem) => {
+    const card = createCaseCardElement(caseItem, false, true);
     state.modalVisibleItems.push({ type: 'case', value: caseItem, action: () => { selectCase(caseItem); closeExplorerModal(); } });
     grid.appendChild(card);
   });
@@ -1051,8 +1051,9 @@ function openMoveDateModal(caseItem) {
 
 function highlightSelectedIndex(items) {
   items.forEach((item, idx) => {
-    item.classList.toggle('selected', idx === state.selectedIndex);
-    if (idx === state.selectedIndex) {
+    const isSel = (idx === state.selectedIndex && state.selectedIndex >= 0);
+    item.classList.toggle('selected', isSel);
+    if (isSel) {
       item.scrollIntoView({ block: 'nearest' });
     }
   });
