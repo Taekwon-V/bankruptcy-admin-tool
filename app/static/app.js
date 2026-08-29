@@ -1133,33 +1133,54 @@ function createCaseCardElement(caseItem, showPath = false) {
   const debtorName = caseItem?.debtor_name || '-';
   const rawPhone = caseItem?.phone || '010-0000-0000';
   const phone = formatKoreanPhoneNumber(rawPhone);
-  const court = caseItem?.court || '인천지방법원';
+  const court = caseItem?.court || '서울회생법원';
   const caseType = caseItem?.case_type === '법인파산' ? '법인' : '개인';
-  const statusLabel = caseItem?.status || '신규접수';
+
+  // 44px uniform state badge label (matching dashboard calendar)
+  let stateBadge = '';
+  if (caseItem?.status === '면책종결') {
+    stateBadge = `<span class="case-card-status-pill" style="background-color:#f1f5f9; color:#475569;">종결</span>`;
+  } else if (!caseItem?.interview_done) {
+    stateBadge = `<span class="case-card-status-pill" style="background-color:#e0f2fe; color:#0369a1;">상담</span>`;
+  } else if (!caseItem?.docs_completed) {
+    stateBadge = `<span class="case-card-status-pill" style="background-color:#fef3c7; color:#b45309;">서류</span>`;
+  } else if (caseItem?.meeting_date) {
+    stateBadge = `<span class="case-card-status-pill" style="background-color:#fee2e2; color:#be123c;">기일</span>`;
+  } else if (caseItem?.report_submitted) {
+    stateBadge = `<span class="case-card-status-pill" style="background-color:#ede9fe; color:#6d28d9;">보고서</span>`;
+  } else {
+    stateBadge = `<span class="case-card-status-pill" style="background-color:${cfg.bg}; color:${cfg.color};">${cfg.label ? cfg.label.slice(0, 2) : '신규'}</span>`;
+  }
 
   const debtAmt = formatKoreanFullAmount(caseItem?.total_debt || 0);
   const pathHtml = showPath ? `<div class="case-card-search-path">📁 ${caseItem?.year || ''} · ${(caseItem?.month_category || '').replace('_',' ')}</div>` : '';
 
   card.innerHTML = `
     <div class="case-card-header">
-      <span class="case-card-no">${caseNo}</span>
-      <span class="case-card-status-pill" style="background-color:${cfg.bg}; color:${cfg.color};">${statusLabel}</span>
+      <div class="case-card-title-group">
+        <span class="case-card-no">${caseNo}</span>
+        <span class="case-card-debtor">${debtorName}</span>
+      </div>
+      ${stateBadge}
     </div>
     ${pathHtml}
-    <div class="case-card-debtor">${debtorName}</div>
     <div class="case-card-details">
       <div class="case-detail-row">
-        <span class="check-icon">✓</span>
-        <span>전화번호 : ${phone}</span>
+        <span>관할법원</span>
+        <span>${court} (${caseType})</span>
       </div>
       <div class="case-detail-row">
-        <span class="check-icon">✓</span>
-        <span>채무액 : <strong>${debtAmt.shortKorean}</strong></span>
+        <span>연락처</span>
+        <span>${phone}</span>
+      </div>
+      <div class="case-detail-row">
+        <span>채무액</span>
+        <span style="color:#0f172a; font-weight:600;">${debtAmt.shortKorean}</span>
       </div>
     </div>
     <div class="case-card-footer">
-      <span class="case-card-subinfo">${court} (${caseType})</span>
-      <button class="btn-edit-date" title="배정 년도 및 월 변경 (폴더 이동)">🗓️ 이동</button>
+      <span>${caseItem?.assigned_date || caseItem?.interview_date || '배정일 미지정'}</span>
+      <button class="btn-edit-date" title="배정 년도 및 월 변경 (폴더 이동)">🚚 이동</button>
     </div>
   `;
 

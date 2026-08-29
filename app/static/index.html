@@ -300,65 +300,70 @@
 
     </main>
 
-    <!-- 4. 🔥 DEEP TEAL CASE EXPLORER MODAL (3x3 Grid & +신규사건등록) 🔥 -->
+    <!-- 4. 🏛️ WARM EDITORIAL CASE EXPLORER MODAL (3x3 Grid & +신규사건등록) 🏛️ -->
     <div class="modal-backdrop" id="explorerModalOverlay">
       <div class="explorer-modal-card">
         
-        <!-- Row 1: Big Title + [+신규 사건 등록] + [ESC 닫기] -->
+        <!-- Header Bar: Deep Forest Green -->
         <div class="mockup-header-row">
-          <div style="display:flex; align-items:center; gap:16px;">
-            <h1 class="mockup-main-title">사건 탐색기</h1>
-            <!-- New Case Registration Button -->
+          <div style="display:flex; align-items:center; gap:14px;">
+            <h1 class="mockup-main-title">
+              <span>사건 탐색기</span>
+              <span style="font-size:14px; font-weight:400; opacity:0.8;">Case Explorer</span>
+            </h1>
             <button class="btn-create-case" id="openNewCaseModalBtn">
               <span>+ 신규 사건 등록</span>
             </button>
           </div>
-          <button class="btn-esc" id="closeExplorerBtn">ESC 닫기</button>
+          <button class="btn-esc" id="closeExplorerBtn">✕ 닫기 (ESC)</button>
         </div>
 
-        <!-- Row 2: Keyword Search Bar -->
-        <div class="modal-search-box">
-          <svg class="search-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input type="text" id="explorerSearchInput" placeholder="사건번호, 채무자 초성(ㅎㄱㄷ), 법원 검색..." autocomplete="off">
-          <button class="btn-clear" id="modalClearSearchBtn" style="display:none;">✕</button>
-        </div>
-
-        <!-- Row 3: Dark Capsule with 7 White Pill Buttons (All + 6 Pipeline Statuses) -->
-        <div class="mockup-status-capsule">
-          <button class="mockup-pill-btn active" data-status="ALL" id="pill-all">
-            전체 : 0 건
-          </button>
-          <button class="mockup-pill-btn" data-status="NEW" id="pill-new">
-            신규 접수 : 0 건
-          </button>
-          <button class="mockup-pill-btn" data-status="DOC_CORRECTION" id="pill-doc">
-            서류 보정 : 0 건
-          </button>
-          <button class="mockup-pill-btn" data-status="BANK_ANALYSIS" id="pill-bank">
-            통장 분석 : 0 건
-          </button>
-          <button class="mockup-pill-btn" data-status="MEETING" id="pill-meet">
-            집회·보고 : 0 건
-          </button>
-          <button class="mockup-pill-btn" data-status="DIVIDEND" id="pill-dividend">
-            환가·배당 : 0 건
-          </button>
-          <button class="mockup-pill-btn" data-status="CLOSED" id="pill-closed">
-            면책·종결 : 0 건
-          </button>
-        </div>
-
-        <!-- Row 4: Breadcrumb Path Bar -->
-        <div class="mockup-nav-bar">
-          <div class="nav-breadcrumbs" id="breadcrumbsList">
-            <span class="nav-crumb active" data-level="root">📁 사건저장소</span>
+        <!-- Controls Area (Ivory): Search + Breadcrumbs + Status Pills -->
+        <div class="explorer-controls-wrapper">
+          <!-- Row 1: Breadcrumb Path + Search Box -->
+          <div class="explorer-nav-search-row">
+            <div class="nav-breadcrumbs" id="breadcrumbsList">
+              <span class="nav-crumb active" data-level="root">📁 사건저장소</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn-nav-up" id="btnUpLevel" style="display:none;" title="상위 폴더로 이동">
+                <span>⬆ 상위로</span>
+              </button>
+              <div class="modal-search-box">
+                <svg class="search-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" id="explorerSearchInput" placeholder="사건번호, 채무자명, 초성(ㅎㄱㄷ) 검색..." autocomplete="off">
+                <button class="btn-clear" id="modalClearSearchBtn" style="display:none;">✕</button>
+              </div>
+            </div>
           </div>
-          <button class="btn-nav-up" id="btnUpLevel" style="display:none;" title="상위 폴더로 이동">
-            <span>⬆ 상위로</span>
-          </button>
+
+          <!-- Row 2: Status Pill Filter Chips -->
+          <div class="mockup-status-capsule">
+            <button class="mockup-pill-btn active" data-status="ALL" id="pill-all">
+              전체 : 0 건
+            </button>
+            <button class="mockup-pill-btn" data-status="NEW" id="pill-new">
+              신규 접수 : 0 건
+            </button>
+            <button class="mockup-pill-btn" data-status="DOC_CORRECTION" id="pill-doc">
+              서류 보정 : 0 건
+            </button>
+            <button class="mockup-pill-btn" data-status="BANK_ANALYSIS" id="pill-bank">
+              통장 분석 : 0 건
+            </button>
+            <button class="mockup-pill-btn" data-status="MEETING" id="pill-meet">
+              집회·보고 : 0 건
+            </button>
+            <button class="mockup-pill-btn" data-status="DIVIDEND" id="pill-dividend">
+              환가·배당 : 0 건
+            </button>
+            <button class="mockup-pill-btn" data-status="CLOSED" id="pill-closed">
+              면책·종결 : 0 건
+            </button>
+          </div>
         </div>
 
-        <!-- Row 5: Cards Content Area (3x3 Grid with smooth scrolling) -->
+        <!-- Content Area: 3x3 Grid -->
         <div class="modal-explorer-body" id="explorerContentArea"></div>
 
       </div>
