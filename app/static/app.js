@@ -276,41 +276,48 @@ function renderDashboard() {
   const elReport = document.getElementById('kpiReportCount');
   if (elReport) elReport.textContent = reportCases.length;
 
-  // 4. Render Weekly Weekday Calendar (월~금 주간 기일 및 일정 달력)
+  // 4. Render Two-Week Weekday Calendar (월~금 2주간 기일 및 일정 달력)
   renderWeeklyCalendar();
 }
 
-// 5-1. Render Weekly Weekday Calendar (월~금 5열 주간 기일 및 상담 일정표)
+// 5-1. Render Two-Week Weekday Calendar (월~금 2주치 드래그 & 드롭 일정표)
 function renderWeeklyCalendar() {
-  const container = document.getElementById('weekdayColumnsGrid');
+  const container = document.getElementById('twoWeekCalendarContainer');
   const titleEl = document.getElementById('calWeekRangeTitle');
   if (!container) return;
 
   container.innerHTML = '';
 
-  // Calculate the active Monday
+  // Calculate Monday of Week 1
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
   const dayOfWeek = now.getDay();
   // If Sunday(0), offset back to Monday of the week
   const diffToMon = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
-  const currentMonday = new Date(now);
-  currentMonday.setDate(now.getDate() + diffToMon + (state.calendarWeekOffset * 7));
+  const startMonday = new Date(now);
+  startMonday.setDate(now.getDate() + diffToMon + (state.calendarWeekOffset * 14));
 
   const weekdays = ['월', '화', '수', '목', '금'];
-  const weekDates = [];
+  
+  // Build Week 1 (5 days) and Week 2 (5 days)
+  const weeks = [
+    { label: '1주차', dates: [] },
+    { label: '2주차', dates: [] }
+  ];
 
-  for (let i = 0; i < 5; i++) {
-    const d = new Date(currentMonday);
-    d.setDate(currentMonday.getDate() + i);
-    weekDates.push(d);
+  for (let w = 0; w < 2; w++) {
+    for (let d = 0; d < 5; d++) {
+      const dateObj = new Date(startMonday);
+      dateObj.setDate(startMonday.getDate() + (w * 7) + d);
+      weeks[w].dates.push(dateObj);
+    }
   }
 
-  // Format Range Title
-  const monStr = formatDateKorean(weekDates[0]);
-  const friStr = formatDateKorean(weekDates[4]);
-  if (titleEl) titleEl.textContent = `${monStr} (월) ~ ${friStr} (금)`;
+  // Format Range Title: e.g. "2026년 08월 31일 (월) ~ 09월 11일 (금)"
+  const firstDayStr = formatDateKorean(weeks[0].dates[0]);
+  const lastDayStr = formatDateKorean(weeks[1].dates[4]);
+  if (titleEl) titleEl.textContent = `${firstDayStr} (월) ~ ${lastDayStr} (금)`;
 
   // Today & Tomorrow strings for visual comparison
   const todayStr = toDateISO(now);
@@ -321,91 +328,192 @@ function renderWeeklyCalendar() {
   // Active cases only (strictly exclude closed cases)
   const activeCases = state.allCases.filter(c => c && c.status !== '면책종결');
 
-  // Render 5 Columns (Mon ~ Fri)
-  weekDates.forEach((dateObj, idx) => {
-    const dateISO = toDateISO(dateObj);
-    const isToday = (dateISO === todayStr);
-    const isTomorrow = (dateISO === tomorrowStr);
+  // Render both weeks
+  weeks.forEach((weekObj, wIdx) => {
+    const weekBlock = document.createElement('div');
+    weekBlock.className = 'calendar-week-block';
 
-    const events = [];
-
-    activeCases.forEach(c => {
-      if (c.meeting_date === dateISO) {
-        events.push({
-          type: 'MEETING',
-          typeLabel: '🗓️ 기일',
-          badgeClass: 'meeting',
-          caseItem: c,
-          subtext: `${c.court || '서울회생법원'} · 제1회 집회기일`
-        });
-      } else if (c.assigned_date === dateISO) {
-        if (!c.interview_done) {
-          events.push({
-            type: 'INTERVIEW',
-            typeLabel: '📞 상담',
-            badgeClass: 'interview',
-            caseItem: c,
-            subtext: '1차 채무자 면담 대기'
-          });
-        } else if (!c.docs_completed) {
-          events.push({
-            type: 'DOCS',
-            typeLabel: '📄 서류',
-            badgeClass: 'docs',
-            caseItem: c,
-            subtext: '보정 서류 접수 검토'
-          });
-        }
-      }
-    });
-
-    const col = document.createElement('div');
-    col.className = 'weekday-col' + (isToday ? ' is-today' : '') + (isTomorrow ? ' is-tomorrow' : '');
-
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const dd = String(dateObj.getDate()).padStart(2, '0');
-    const dayName = weekdays[idx];
-
-    col.innerHTML = `
-      <div class="weekday-col-header">
-        <div class="col-header-left">
-          <span class="day-name-pill">${dayName}${isToday ? ' (오늘)' : isTomorrow ? ' (내일)' : ''}</span>
-          <span class="day-date-str">${mm}/${dd}</span>
-        </div>
-        <span class="day-event-count">${events.length}건</span>
+    const wStart = `${weekObj.dates[0].getMonth() + 1}/${weekObj.dates[0].getDate()}`;
+    const wEnd = `${weekObj.dates[4].getMonth() + 1}/${weekObj.dates[4].getDate()}`;
+    
+    weekBlock.innerHTML = `
+      <div class="calendar-week-header">
+        <span class="week-badge-pill">${wIdx + 1}주차</span>
+        <span>${wStart} (월) ~ ${wEnd} (금)</span>
       </div>
-      <div class="weekday-col-body">
-        ${events.length === 0 ? '<div class="empty-cal-day">예정 일정 없음</div>' : ''}
-      </div>
+      <div class="weekday-columns-grid"></div>
     `;
 
-    const body = col.querySelector('.weekday-col-body');
+    const grid = weekBlock.querySelector('.weekday-columns-grid');
 
-    events.forEach(ev => {
-      const chip = document.createElement('div');
-      chip.className = 'cal-event-chip';
-      chip.title = `${ev.caseItem.case_number} ${ev.caseItem.debtor_name} 상세 보기`;
-      chip.innerHTML = `
-        <div class="cal-event-top-row">
-          <span class="cal-event-badge ${ev.badgeClass}">${ev.typeLabel}</span>
-          <span class="cal-event-court">${ev.caseItem.court || '법원'}</span>
-        </div>
-        <div class="cal-event-title">
-          <span class="cal-event-case-no">${ev.caseItem.case_number || '-'}</span>
-          <span class="cal-event-debtor">${ev.caseItem.debtor_name || '-'}</span>
-        </div>
-        <div class="cal-event-sub">${ev.subtext}</div>
-      `;
+    weekObj.dates.forEach((dateObj, dIdx) => {
+      const dateISO = toDateISO(dateObj);
+      const isToday = (dateISO === todayStr);
+      const isTomorrow = (dateISO === tomorrowStr);
 
-      chip.addEventListener('click', () => {
-        selectCase(ev.caseItem, true); // Switch to workspace view
+      const events = [];
+
+      activeCases.forEach(c => {
+        if (c.meeting_date === dateISO) {
+          if (c.report_submitted) {
+            events.push({
+              type: 'REPORT',
+              typeLabel: '📑 보고서',
+              badgeClass: 'report',
+              field: 'meeting_date',
+              caseItem: c
+            });
+          } else {
+            events.push({
+              type: 'MEETING',
+              typeLabel: '🗓️ 기일',
+              badgeClass: 'meeting',
+              field: 'meeting_date',
+              caseItem: c
+            });
+          }
+        } else if (c.assigned_date === dateISO) {
+          if (!c.interview_done) {
+            events.push({
+              type: 'INTERVIEW',
+              typeLabel: '📞 상담',
+              badgeClass: 'interview',
+              field: 'assigned_date',
+              caseItem: c
+            });
+          } else if (!c.docs_completed) {
+            events.push({
+              type: 'DOCS',
+              typeLabel: '📄 서류',
+              badgeClass: 'docs',
+              field: 'assigned_date',
+              caseItem: c
+            });
+          }
+        }
       });
 
-      body.appendChild(chip);
+      const col = document.createElement('div');
+      col.className = 'weekday-col' + (isToday ? ' is-today' : '') + (isTomorrow ? ' is-tomorrow' : '');
+      col.setAttribute('data-date', dateISO);
+
+      // Drag & Drop Dropzone Listeners
+      col.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        col.classList.add('drag-over');
+      });
+
+      col.addEventListener('dragleave', () => {
+        col.classList.remove('drag-over');
+      });
+
+      col.addEventListener('drop', (e) => handleEventDrop(e, dateISO));
+
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const dayName = weekdays[dIdx];
+
+      col.innerHTML = `
+        <div class="weekday-col-header">
+          <div class="col-header-left">
+            <span class="day-name-pill">${dayName}${isToday ? ' (오늘)' : isTomorrow ? ' (내일)' : ''}</span>
+            <span class="day-date-str">${mm}/${dd}</span>
+          </div>
+          <span class="day-event-count">${events.length}건</span>
+        </div>
+        <div class="weekday-col-body">
+          ${events.length === 0 ? '<div class="empty-cal-day">일정 없음</div>' : ''}
+        </div>
+      `;
+
+      const body = col.querySelector('.weekday-col-body');
+
+      // Render Compact Drag-and-Drop Event Chips (Only Badge + Case No + Debtor Name)
+      events.forEach(ev => {
+        const chip = document.createElement('div');
+        chip.className = 'cal-event-chip';
+        chip.setAttribute('draggable', 'true');
+        chip.title = `[드래그로 날짜 변경 가능] 클릭 시 사건 상세 보기`;
+
+        chip.innerHTML = `
+          <span class="cal-event-badge ${ev.badgeClass}">${ev.typeLabel}</span>
+          <span class="cal-event-case-no">${ev.caseItem.case_number || '-'}</span>
+          <span class="cal-event-debtor">${ev.caseItem.debtor_name || '-'}</span>
+        `;
+
+        // Drag Start
+        chip.addEventListener('dragstart', (e) => {
+          chip.classList.add('is-dragging');
+          const dragData = {
+            caseNumber: ev.caseItem.case_number,
+            debtorName: ev.caseItem.debtor_name,
+            eventType: ev.type,
+            eventTypeLabel: ev.typeLabel.replace(/[^\uAC00-\uD7AFa-zA-Z]/g, ''), // e.g. "기일", "상담", "서류", "보고서"
+            fromDate: dateISO,
+            folderPath: ev.caseItem.folder_path
+          };
+          e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+        });
+
+        // Drag End
+        chip.addEventListener('dragend', () => {
+          chip.classList.remove('is-dragging');
+        });
+
+        // Click to open workspace
+        chip.addEventListener('click', (e) => {
+          selectCase(ev.caseItem, true);
+        });
+
+        body.appendChild(chip);
+      });
+
+      grid.appendChild(col);
     });
 
-    container.appendChild(col);
+    container.appendChild(weekBlock);
   });
+}
+
+// 5-2. Handle Drag and Drop Case Date Movement with Confirmation Prompt
+async function handleEventDrop(e, targetDate) {
+  e.preventDefault();
+  const col = e.currentTarget;
+  if (col) col.classList.remove('drag-over');
+
+  try {
+    const rawData = e.dataTransfer.getData('text/plain');
+    if (!rawData) return;
+    const data = JSON.parse(rawData);
+    const { caseNumber, debtorName, eventType, eventTypeLabel, fromDate, folderPath } = data;
+
+    if (!caseNumber || !targetDate || targetDate === fromDate) return;
+
+    // Safety Confirmation Modal Dialog to prevent accidental moves
+    const confirmMsg = `[${debtorName}] 사건의 [${eventTypeLabel}] 날짜를\n${fromDate} ➔ ${targetDate} (으)로 변경하시겠습니까?`;
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    // Find case in state
+    const caseItem = state.allCases.find(c => c && c.case_number === caseNumber);
+    if (!caseItem) return;
+
+    const flagData = {};
+    if (eventType === 'MEETING' || eventType === 'REPORT') {
+      flagData.meeting_date = targetDate;
+    } else {
+      flagData.assigned_date = targetDate;
+    }
+
+    await updateCaseFlag(
+      caseItem,
+      flagData,
+      `[${debtorName}] [${eventTypeLabel}] 날짜가 ${targetDate}(으)로 성공적으로 변경되었습니다.`
+    );
+  } catch (err) {
+    console.error('Drop handling error:', err);
+  }
 }
 
 function toDateISO(d) {

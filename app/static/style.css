@@ -1529,26 +1529,26 @@ kbd {
 }
 
 /* ==========================================================================
-   Weekly Weekday Calendar (월~금 주간 기일 및 일정 달력)
+   Two-Week Weekday Calendar (월~금 2주간 기일 및 일정 달력)
    ========================================================================== */
 .weekly-calendar-section {
-  margin-top: 24px;
+  margin-top: 22px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .weekly-cal-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 .weekly-cal-title-group {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .cal-badge-tag {
@@ -1561,7 +1561,7 @@ kbd {
 
 .weekly-cal-title {
   font-family: 'Playfair Display', 'Pretendard', serif;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   color: #1a201c;
   letter-spacing: -0.01em;
@@ -1570,16 +1570,16 @@ kbd {
 .weekly-cal-nav {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 .btn-cal-nav {
   background: #ffffff;
   border: 1px solid #e8e4dc;
   color: #1e3322;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 5px;
   cursor: pointer;
   transition: all var(--trans-fast);
@@ -1595,9 +1595,9 @@ kbd {
   background: #1e3322;
   color: #ffffff;
   border: 1px solid #1e3322;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 6px 16px;
+  padding: 5px 14px;
   border-radius: 5px;
   cursor: pointer;
   transition: all var(--trans-fast);
@@ -1608,33 +1608,73 @@ kbd {
   transform: translateY(-1px);
 }
 
+/* Two-Week Calendar Container */
+.two-week-calendar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.calendar-week-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calendar-week-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #5f6b63;
+  letter-spacing: 0.03em;
+}
+
+.week-badge-pill {
+  background: #e8e4dc;
+  color: #1a201c;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 /* 5-Column Weekday Grid (월, 화, 수, 목, 금) */
 .weekday-columns-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
+  gap: 10px;
 }
 
 .weekday-col {
   background: #ffffff;
   border: 1px solid #e8e4dc;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 380px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 190px;
+  max-height: 250px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .weekday-col:hover {
-  box-shadow: 0 6px 18px rgba(30, 51, 34, 0.06);
+  box-shadow: 0 4px 12px rgba(30, 51, 34, 0.05);
+}
+
+/* Drag Over Highlighting */
+.weekday-col.drag-over {
+  border: 2px dashed #059669 !important;
+  background: #f0fdf4 !important;
+  transform: scale(1.01);
 }
 
 /* Today: Solid Red Border Highlighting */
 .weekday-col.is-today {
   border: 2.5px solid #dc2626 !important;
-  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.12) !important;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.12) !important;
   background: #fffcfc;
 }
 
@@ -1657,7 +1697,7 @@ kbd {
 /* Tomorrow: Soft Light Red Border Highlighting */
 .weekday-col.is-tomorrow {
   border: 2px solid #f87171 !important;
-  box-shadow: 0 3px 14px rgba(248, 113, 113, 0.08) !important;
+  box-shadow: 0 3px 12px rgba(248, 113, 113, 0.08) !important;
   background: #fffdfd;
 }
 
@@ -1677,7 +1717,7 @@ kbd {
 }
 
 .weekday-col-header {
-  padding: 12px 14px;
+  padding: 7px 10px;
   border-bottom: 1px solid #e8e4dc;
   background: #fbf9f4;
   display: flex;
@@ -1688,89 +1728,93 @@ kbd {
 .col-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .day-name-pill {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
   background: #e8e4dc;
   color: #1a201c;
 }
 
 .day-date-str {
   font-family: var(--font-mono);
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 800;
   color: #1a201c;
 }
 
 .day-event-count {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 800;
   color: #6b776f;
   background: rgba(0, 0, 0, 0.04);
-  padding: 2px 7px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
 }
 
 .weekday-col-body {
-  padding: 10px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
   flex: 1;
   overflow-y: auto;
-  max-height: 420px;
 }
 
 .empty-cal-day {
   text-align: center;
-  color: #9aa59d;
-  font-size: 13.5px;
-  padding: 40px 10px;
+  color: #a3aca5;
+  font-size: 12.5px;
+  padding: 24px 6px;
   font-style: italic;
 }
 
-/* Event Chips in Day Column */
+/* Compact Drag & Drop Event Chips in Day Column */
 .cal-event-chip {
-  background: #fdfbf7;
-  border: 1px solid #ede8de;
-  border-radius: 6px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 4px;
+  cursor: grab;
+  transition: all 0.15s;
+  font-size: 13.5px;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.cal-event-chip:active {
+  cursor: grabbing;
+}
+
+.cal-event-chip.is-dragging {
+  opacity: 0.35;
+  border-style: dashed;
+  transform: scale(0.96);
 }
 
 .cal-event-chip:hover {
-  background: #f7f2e7;
-  border-color: #ded1ba;
+  background: #f7f4ea;
+  border-color: #ded8cb;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(30, 51, 34, 0.06);
-}
-
-.cal-event-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  box-shadow: 0 2px 6px rgba(30, 51, 34, 0.06);
 }
 
 .cal-event-badge {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.15;
 }
 
 .cal-event-badge.meeting {
@@ -1791,38 +1835,26 @@ kbd {
   border: 1px solid #fde68a;
 }
 
-.cal-event-court {
-  font-size: 11.5px;
-  color: #6b776f;
-  font-weight: 600;
-}
-
-.cal-event-title {
-  font-size: 14.5px;
-  font-weight: 800;
-  color: #1a201c;
-  line-height: 1.35;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+.cal-event-badge.report {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
 }
 
 .cal-event-case-no {
   font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
   color: #1e3322;
+  white-space: nowrap;
 }
 
 .cal-event-debtor {
+  font-weight: 700;
   color: #1a201c;
-}
-
-.cal-event-sub {
-  font-size: 12.5px;
-  color: #5f6b63;
-  margin-top: 1px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* ==========================================================================
