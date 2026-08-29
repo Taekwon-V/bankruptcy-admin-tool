@@ -307,9 +307,13 @@ function renderWeeklyCalendar() {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const dayOfWeek = now.getDay();
-  // If Sunday(0), offset back to Monday of the week
-  const diffToMon = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+  const dayOfWeek = now.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+  // If Sunday(0), point to tomorrow Monday (+1) so the upcoming 2 weeks (8/31~9/4 and 9/7~9/11) are shown
+  let diffToMon = 1 - dayOfWeek;
+  if (dayOfWeek === 0) {
+    diffToMon = 1;
+  }
+  
   const startMonday = new Date(now);
   startMonday.setDate(now.getDate() + diffToMon + (state.calendarWeekOffset * 7));
 
