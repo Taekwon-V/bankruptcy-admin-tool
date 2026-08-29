@@ -158,6 +158,7 @@ const state = {
   directCategory: null, // 'ACTIVE' | 'INTERVIEW' | 'DOCS' | 'DEADLINE' | 'REPORTS' | null
   searchQuery: '',
   selectedIndex: 0,
+  calendarWeekOffset: 0, // 0 = Current week, -1 = Prev week, +1 = Next week
   modalVisibleItems: [],
   caseToMove: null
 };
@@ -274,6 +275,151 @@ function renderDashboard() {
 
   const elReport = document.getElementById('kpiReportCount');
   if (elReport) elReport.textContent = reportCases.length;
+
+  // 4. Render Weekly Weekday Calendar (월~금 주간 기일 및 일정 달력)
+  renderWeeklyCalendar();
+}
+
+// 5-1. Render Weekly Weekday Calendar (월~금 5열 주간 기일 및 상담 일정표)
+function renderWeeklyCalendar() {
+  const container = document.getElementById('weekdayColumnsGrid');
+  const titleEl = document.getElementById('calWeekRangeTitle');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  // Calculate the active Monday
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  const dayOfWeek = now.getDay();
+  // If Sunday(0), offset back to Monday of the week
+  const diffToMon = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+  const currentMonday = new Date(now);
+  currentMonday.setDate(now.getDate() + diffToMon + (state.calendarWeekOffset * 7));
+
+  const weekdays = ['월', '화', '수', '목', '금'];
+  const weekDates = [];
+
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(currentMonday);
+    d.setDate(currentMonday.getDate() + i);
+    weekDates.push(d);
+  }
+
+  // Format Range Title
+  const monStr = formatDateKorean(weekDates[0]);
+  const friStr = formatDateKorean(weekDates[4]);
+  if (titleEl) titleEl.textContent = `${monStr} (월) ~ ${friStr} (금)`;
+
+  // Today & Tomorrow strings for visual comparison
+  const todayStr = toDateISO(now);
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  const tomorrowStr = toDateISO(tomorrow);
+
+  // Active cases only (strictly exclude closed cases)
+  const activeCases = state.allCases.filter(c => c && c.status !== '면책종결');
+
+  // Render 5 Columns (Mon ~ Fri)
+  weekDates.forEach((dateObj, idx) => {
+    const dateISO = toDateISO(dateObj);
+    const isToday = (dateISO === todayStr);
+    const isTomorrow = (dateISO === tomorrowStr);
+
+    const events = [];
+
+    activeCases.forEach(c => {
+      if (c.meeting_date === dateISO) {
+        events.push({
+          type: 'MEETING',
+          typeLabel: '🗓️ 기일',
+          badgeClass: 'meeting',
+          caseItem: c,
+          subtext: `${c.court || '서울회생법원'} · 제1회 집회기일`
+        });
+      } else if (c.assigned_date === dateISO) {
+        if (!c.interview_done) {
+          events.push({
+            type: 'INTERVIEW',
+            typeLabel: '📞 상담',
+            badgeClass: 'interview',
+            caseItem: c,
+            subtext: '1차 채무자 면담 대기'
+          });
+        } else if (!c.docs_completed) {
+          events.push({
+            type: 'DOCS',
+            typeLabel: '📄 서류',
+            badgeClass: 'docs',
+            caseItem: c,
+            subtext: '보정 서류 접수 검토'
+          });
+        }
+      }
+    });
+
+    const col = document.createElement('div');
+    col.className = 'weekday-col' + (isToday ? ' is-today' : '') + (isTomorrow ? ' is-tomorrow' : '');
+
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    const dayName = weekdays[idx];
+
+    col.innerHTML = `
+      <div class="weekday-col-header">
+        <div class="col-header-left">
+          <span class="day-name-pill">${dayName}${isToday ? ' (오늘)' : isTomorrow ? ' (내일)' : ''}</span>
+          <span class="day-date-str">${mm}/${dd}</span>
+        </div>
+        <span class="day-event-count">${events.length}건</span>
+      </div>
+      <div class="weekday-col-body">
+        ${events.length === 0 ? '<div class="empty-cal-day">예정 일정 없음</div>' : ''}
+      </div>
+    `;
+
+    const body = col.querySelector('.weekday-col-body');
+
+    events.forEach(ev => {
+      const chip = document.createElement('div');
+      chip.className = 'cal-event-chip';
+      chip.title = `${ev.caseItem.case_number} ${ev.caseItem.debtor_name} 상세 보기`;
+      chip.innerHTML = `
+        <div class="cal-event-top-row">
+          <span class="cal-event-badge ${ev.badgeClass}">${ev.typeLabel}</span>
+          <span class="cal-event-court">${ev.caseItem.court || '법원'}</span>
+        </div>
+        <div class="cal-event-title">
+          <span class="cal-event-case-no">${ev.caseItem.case_number || '-'}</span>
+          <span class="cal-event-debtor">${ev.caseItem.debtor_name || '-'}</span>
+        </div>
+        <div class="cal-event-sub">${ev.subtext}</div>
+      `;
+
+      chip.addEventListener('click', () => {
+        selectCase(ev.caseItem, true); // Switch to workspace view
+      });
+
+      body.appendChild(chip);
+    });
+
+    container.appendChild(col);
+  });
+}
+
+function toDateISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatDateKorean(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}년 ${m}월 ${day}일`;
 }
 
 // Update Case Status Flags (interview_done, docs_completed, report_submitted)
@@ -1007,6 +1153,31 @@ function initEventListeners() {
       }
       state.selectedIndex = 0;
       renderExplorer();
+    });
+  }
+
+  // Weekly Calendar Navigation Buttons
+  const btnCalPrev = document.getElementById('btnCalPrevWeek');
+  if (btnCalPrev) {
+    btnCalPrev.addEventListener('click', () => {
+      state.calendarWeekOffset--;
+      renderWeeklyCalendar();
+    });
+  }
+
+  const btnCalNext = document.getElementById('btnCalNextWeek');
+  if (btnCalNext) {
+    btnCalNext.addEventListener('click', () => {
+      state.calendarWeekOffset++;
+      renderWeeklyCalendar();
+    });
+  }
+
+  const btnCalToday = document.getElementById('btnCalToday');
+  if (btnCalToday) {
+    btnCalToday.addEventListener('click', () => {
+      state.calendarWeekOffset = 0;
+      renderWeeklyCalendar();
     });
   }
 

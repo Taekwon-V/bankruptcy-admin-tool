@@ -22,7 +22,7 @@
     <!-- 2. 🔥 MAIN EDITORIAL DASHBOARD VIEW (Phase 2 메인 상황판) 🔥 -->
     <main class="dashboard-view" id="dashboardView">
 
-      <!-- Hero Calligraphy / Typography Section -->
+      <!-- Hero Section: Left = Calligraphy Text, Right = 6 Standalone Cards -->
       <section class="editorial-hero-section">
         <div class="hero-calligraphy-box">
           <span class="hero-category-tag">■ 오늘의 관제 사건 현황</span>
@@ -35,7 +35,7 @@
           </p>
         </div>
 
-        <!-- Independent Tour-Style Stat Cards (6 Standalone Cards) -->
+        <!-- Independent Tour-Style Stat Cards (6 Standalone Cards on the Right) -->
         <div class="hero-counter-grid">
           <div class="kpi-stat-card" id="kpiActiveCard" title="진행 사건 목록 조회">
             <span class="kpi-card-label">진행 사건</span>
@@ -61,6 +61,26 @@
             <span class="kpi-card-label">사건 탐색기</span>
             <span class="kpi-card-num explorer-icon">📁</span>
           </div>
+        </div>
+      </section>
+
+      <!-- Weekly Weekday Calendar (월~금 주간 기일 및 일정 달력) -->
+      <section class="weekly-calendar-section">
+        <div class="weekly-cal-header">
+          <div class="weekly-cal-title-group">
+            <span class="cal-badge-tag">■ 주간 관제 일정표 (월~금)</span>
+            <h2 class="weekly-cal-title" id="calWeekRangeTitle">2026년 08월 31일 (월) ~ 09월 04일 (금)</h2>
+          </div>
+          <div class="weekly-cal-nav">
+            <button class="btn-cal-nav" id="btnCalPrevWeek" title="이전 주 일정 보기">‹ 이전 주</button>
+            <button class="btn-cal-today" id="btnCalToday" title="오늘이 속한 주로 이동">오늘</button>
+            <button class="btn-cal-nav" id="btnCalNextWeek" title="다음 주 일정 보기">다음 주 ›</button>
+          </div>
+        </div>
+
+        <!-- 5-Column Weekday Grid (월, 화, 수, 목, 금) -->
+        <div class="weekday-columns-grid" id="weekdayColumnsGrid">
+          <!-- Dynamically populated 5 columns (Mon~Fri) -->
         </div>
       </section>
 

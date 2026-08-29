@@ -119,17 +119,23 @@ def generate_full_sample_database():
                 debt = random.randint(4, 55) * 10000000 + random.randint(100, 990) * 10000
                 
             phone = f"010-{random.randint(2000, 9999)}-{random.randint(1000, 9999)}"
-            assign_day = str(random.randint(5, 20)).zfill(2)
-            assigned_date = f"{assign_prefix}-{assign_day}"
             
-            # Meeting dates: create realistic D-Days relative to current date (2026-08-29)
+            # Diverse assigned dates including current week for interview / docs queues
+            if month_num == "08":
+                assign_day = random.choice(["08-25", "08-28", "08-30", "08-31", "09-01", "09-02"])
+                assigned_date = f"2026-{assign_day}"
+            else:
+                assign_day = str(random.randint(5, 25)).zfill(2)
+                assigned_date = f"{assign_prefix}-{assign_day}"
+            
+            # Meeting dates: Distributed across Mon~Fri of current & upcoming weeks
             if status in ["채권자집회대기", "통장분석중", "환가배당진행"]:
                 if month_num == "06":
-                    meet_day = random.choice(["2026-09-01", "2026-09-04", "2026-09-08", "2026-09-12", "2026-09-15"])
+                    meet_day = random.choice(["2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-08", "2026-09-15"])
                 elif month_num == "07":
-                    meet_day = random.choice(["2026-09-10", "2026-09-16", "2026-09-22", "2026-09-28", "2026-10-08"])
+                    meet_day = random.choice(["2026-09-01", "2026-09-03", "2026-09-07", "2026-09-10", "2026-09-16", "2026-09-22"])
                 else:
-                    meet_day = random.choice(["2026-10-15", "2026-10-22", "2026-10-29", "2026-11-05"])
+                    meet_day = random.choice(["2026-09-02", "2026-09-04", "2026-09-09", "2026-09-17", "2026-10-15", "2026-10-22"])
             else:
                 meet_day = f"{meet_prefix}-20"
                 
