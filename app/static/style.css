@@ -1291,9 +1291,9 @@ body {
 
 .form-group textarea {
   resize: vertical; /* Horizontal fixed, vertical adjustable */
-  min-height: 68px;
-  max-height: 240px;
-  line-height: 1.5;
+  min-height: 136px; /* 2배 확대 (기존 68px -> 136px) */
+  max-height: 320px;
+  line-height: 1.55;
 }
 
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
