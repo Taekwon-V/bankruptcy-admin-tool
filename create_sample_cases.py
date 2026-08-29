@@ -89,6 +89,13 @@ def generate_full_sample_database():
         ])
     ]
 
+    CONSULTATION_HOURS = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
+    booked_interviews = {} # date -> set of booked hours
+    interview_dates_pool = [
+        "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04",
+        "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"
+    ]
+
     for month_folder, assign_prefix, meet_prefix, start_idx, end_idx, status_dist in months_plan:
         target_month_dir = os.path.join(base_dir, "2026년", month_folder)
         os.makedirs(target_month_dir, exist_ok=True)
@@ -120,14 +127,6 @@ def generate_full_sample_database():
                 
             phone = f"010-{random.randint(2000, 9999)}-{random.randint(1000, 9999)}"
             
-            # Diverse assigned dates including current week for interview / docs queues
-            if month_num == "08":
-                assign_day = random.choice(["08-25", "08-28", "08-30", "08-31", "09-01", "09-02"])
-                assigned_date = f"2026-{assign_day}"
-            else:
-                assign_day = str(random.randint(5, 25)).zfill(2)
-                assigned_date = f"{assign_prefix}-{assign_day}"
-            
             # Meeting dates: Distributed across Mon~Fri of current & upcoming weeks
             if status in ["채권자집회대기", "통장분석중", "환가배당진행"]:
                 if month_num == "06":
@@ -139,7 +138,7 @@ def generate_full_sample_database():
             else:
                 meet_day = f"{meet_prefix}-20"
                 
-            # Status Flags
+            # Status Flags & Unique Non-Overlapping Consultation Hours
             if status == "신규접수":
                 interview_done = False
                 docs_completed = False
@@ -170,6 +169,29 @@ def generate_full_sample_database():
                 docs_completed = True
                 report_submitted = True
                 memo = "배당 완료 및 법원 면책 허가 결정 확정으로 사건 종결 처리됨."
+
+            # Assign Unique Non-Overlapping 1-Hour Consultation Slot if interview is pending
+            if not interview_done and status != "면책종결":
+                # Find an open slot across pool
+                assigned_slot = None
+                assigned_date = None
+                for target_date in interview_dates_pool:
+                    booked = booked_interviews.setdefault(target_date, set())
+                    available = [h for h in CONSULTATION_HOURS if h not in booked]
+                    if available:
+                        assigned_slot = random.choice(available)
+                        booked.add(assigned_slot)
+                        assigned_date = target_date
+                        break
+                if not assigned_slot:
+                    assigned_date = "2026-09-14"
+                    assigned_slot = "10:00"
+                interview_date = assigned_date
+                interview_time = assigned_slot
+            else:
+                assigned_date = f"{assign_prefix}-{str(random.randint(5, 25)).zfill(2)}"
+                interview_date = assigned_date
+                interview_time = "14:00"
 
             # Create Directory
             folder_name = f"[{case_no}] {name}"
@@ -209,6 +231,8 @@ def generate_full_sample_database():
                 "court": court,
                 "status": status,
                 "assigned_date": assigned_date,
+                "interview_date": interview_date,
+                "interview_time": interview_time,
                 "meeting_date": meet_day,
                 "total_debt": debt,
                 "phone": phone,
@@ -216,13 +240,13 @@ def generate_full_sample_database():
                 "docs_completed": docs_completed,
                 "report_submitted": report_submitted,
                 "memo": memo,
-                "created_at": f"{assigned_date} 09:00:00"
+                "created_at": f"{assigned_date} {interview_time}:00"
             }
             
             with open(os.path.join(case_dir, "사건메타정보.json"), "w", encoding="utf-8") as f:
                 json.dump(meta, f, ensure_ascii=False, indent=2)
 
-    print("[OK] Successfully updated all past cases to CLOSED & created 75 realistic cases in 사건저장소 (06, 07, 08월)!")
+    print("[OK] Successfully generated sample database with unique 1-hour consultation slots!")
 
 if __name__ == "__main__":
     generate_full_sample_database()

@@ -280,6 +280,21 @@ function renderDashboard() {
   renderWeeklyCalendar();
 }
 
+// 5-0. Standard Consultation Hours (1-hour discrete slots: 10:00 ~ 17:00)
+const CONSULTATION_HOURS = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+
+function getBookedInterviewTimes(dateStr, excludeCaseNo = null) {
+  return (state.allCases || [])
+    .filter(c => c && c.case_number !== excludeCaseNo && c.status !== '면책종결' && !c.interview_done)
+    .filter(c => ((c.interview_date || c.assigned_date) === dateStr) && c.interview_time)
+    .map(c => c.interview_time);
+}
+
+function getAvailableInterviewSlots(dateStr, excludeCaseNo = null) {
+  const booked = getBookedInterviewTimes(dateStr, excludeCaseNo);
+  return CONSULTATION_HOURS.filter(h => !booked.includes(h));
+}
+
 // 5-1. Render Two-Week Weekday Calendar (월~금 2주치 드래그 & 드롭 일정표)
 function renderWeeklyCalendar() {
   const container = document.getElementById('twoWeekCalendarContainer');
@@ -354,6 +369,7 @@ function renderWeeklyCalendar() {
       const events = [];
 
       activeCases.forEach(c => {
+        const iDate = c.interview_date || c.assigned_date;
         if (c.meeting_date === dateISO) {
           if (c.report_submitted) {
             events.push({
@@ -372,25 +388,34 @@ function renderWeeklyCalendar() {
               caseItem: c
             });
           }
-        } else if (c.assigned_date === dateISO) {
-          if (!c.interview_done) {
-            events.push({
-              type: 'INTERVIEW',
-              typeLabel: '상담',
-              badgeClass: 'interview',
-              field: 'assigned_date',
-              caseItem: c
-            });
-          } else if (!c.docs_completed) {
-            events.push({
-              type: 'DOCS',
-              typeLabel: '서류',
-              badgeClass: 'docs',
-              field: 'assigned_date',
-              caseItem: c
-            });
-          }
+        } else if (iDate === dateISO && !c.interview_done) {
+          events.push({
+            type: 'INTERVIEW',
+            typeLabel: '상담',
+            badgeClass: 'interview',
+            time: c.interview_time || '10:00',
+            field: 'assigned_date',
+            caseItem: c
+          });
+        } else if (c.assigned_date === dateISO && c.interview_done && !c.docs_completed) {
+          events.push({
+            type: 'DOCS',
+            typeLabel: '서류',
+            badgeClass: 'docs',
+            field: 'assigned_date',
+            caseItem: c
+          });
         }
+      });
+
+      // Sort events: chronologically (Interviews by time first, then others)
+      events.sort((a, b) => {
+        if (a.type === 'INTERVIEW' && b.type === 'INTERVIEW') {
+          return (a.time || '').localeCompare(b.time || '');
+        }
+        if (a.type === 'INTERVIEW') return -1;
+        if (b.type === 'INTERVIEW') return 1;
+        return 0;
       });
 
       const col = document.createElement('div');
@@ -428,17 +453,20 @@ function renderWeeklyCalendar() {
 
       const body = col.querySelector('.weekday-col-body');
 
-      // Render Compact Drag-and-Drop Event Chips (Uniform Badge Size + No Icons)
+      // Render Compact Drag-and-Drop Event Chips (With Right Time Badge on Interview)
       events.forEach(ev => {
         const chip = document.createElement('div');
         chip.className = 'cal-event-chip';
         chip.setAttribute('draggable', 'true');
         chip.title = `[드래그로 날짜 변경 가능] 클릭 시 사건 상세 보기`;
 
+        const timeTag = ev.time ? `<span class="cal-event-time">${ev.time}</span>` : '';
+
         chip.innerHTML = `
           <span class="cal-event-badge ${ev.badgeClass}">${ev.typeLabel}</span>
           <span class="cal-event-case-no">${ev.caseItem.case_number || '-'}</span>
           <span class="cal-event-debtor">${ev.caseItem.debtor_name || '-'}</span>
+          ${timeTag}
         `;
 
         // Drag Start
@@ -448,7 +476,8 @@ function renderWeeklyCalendar() {
             caseNumber: ev.caseItem.case_number,
             debtorName: ev.caseItem.debtor_name,
             eventType: ev.type,
-            eventTypeLabel: ev.typeLabel, // e.g. "기일", "상담", "서류", "보고서"
+            eventTypeLabel: ev.typeLabel, // "기일", "상담", "서류", "보고서"
+            fromTime: ev.time || '',
             fromDate: dateISO,
             folderPath: ev.caseItem.folder_path
           };
@@ -475,7 +504,7 @@ function renderWeeklyCalendar() {
   });
 }
 
-// 5-2. Handle Drag and Drop Case Date Movement with Confirmation Prompt
+// 5-2. Handle Drag and Drop Case Date Movement with Collision Prevention & Confirmation
 async function handleEventDrop(e, targetDate) {
   e.preventDefault();
   const col = e.currentTarget;
@@ -485,32 +514,58 @@ async function handleEventDrop(e, targetDate) {
     const rawData = e.dataTransfer.getData('text/plain');
     if (!rawData) return;
     const data = JSON.parse(rawData);
-    const { caseNumber, debtorName, eventType, eventTypeLabel, fromDate, folderPath } = data;
+    const { caseNumber, debtorName, eventType, eventTypeLabel, fromDate, fromTime, folderPath } = data;
 
     if (!caseNumber || !targetDate || targetDate === fromDate) return;
-
-    // Safety Confirmation Modal Dialog to prevent accidental moves
-    const confirmMsg = `[${debtorName}] 사건의 [${eventTypeLabel}] 날짜를\n${fromDate} ➔ ${targetDate} (으)로 변경하시겠습니까?`;
-    if (!confirm(confirmMsg)) {
-      return;
-    }
 
     // Find case in state
     const caseItem = state.allCases.find(c => c && c.case_number === caseNumber);
     if (!caseItem) return;
 
     const flagData = {};
-    if (eventType === 'MEETING' || eventType === 'REPORT') {
-      flagData.meeting_date = targetDate;
-    } else {
-      flagData.assigned_date = targetDate;
-    }
 
-    await updateCaseFlag(
-      caseItem,
-      flagData,
-      `[${debtorName}] [${eventTypeLabel}] 날짜가 ${targetDate}(으)로 성공적으로 변경되었습니다.`
-    );
+    if (eventType === 'INTERVIEW') {
+      // Collision Prevention Check for 1-hour consultation slots
+      const availableSlots = getAvailableInterviewSlots(targetDate, caseNumber);
+      if (availableSlots.length === 0) {
+        alert(`⚠️ [상담 예약 불가]\n\n해당 일자(${targetDate})는 1시간 단위 상담 시간(10:00~17:00)이 모두 예약되었습니다.\n다른 날짜를 선택해주세요.`);
+        return;
+      }
+
+      // Preserve current time if available on target date, else assign first available open slot
+      let targetTime = fromTime;
+      if (!availableSlots.includes(targetTime)) {
+        targetTime = availableSlots[0];
+      }
+
+      const confirmMsg = `[${debtorName}] 사건의 [상담] 일시를\n${fromDate} (${fromTime || '10:00'}) ➔ ${targetDate} ${targetTime} (으)로 변경하시겠습니까?`;
+      if (!confirm(confirmMsg)) return;
+
+      flagData.assigned_date = targetDate;
+      flagData.interview_date = targetDate;
+      flagData.interview_time = targetTime;
+
+      await updateCaseFlag(
+        caseItem,
+        flagData,
+        `[${debtorName}] 상담 일시가 ${targetDate} ${targetTime}(으)로 성공적으로 변경되었습니다.`
+      );
+    } else {
+      const confirmMsg = `[${debtorName}] 사건의 [${eventTypeLabel}] 날짜를\n${fromDate} ➔ ${targetDate} (으)로 변경하시겠습니까?`;
+      if (!confirm(confirmMsg)) return;
+
+      if (eventType === 'MEETING' || eventType === 'REPORT') {
+        flagData.meeting_date = targetDate;
+      } else {
+        flagData.assigned_date = targetDate;
+      }
+
+      await updateCaseFlag(
+        caseItem,
+        flagData,
+        `[${debtorName}] [${eventTypeLabel}] 날짜가 ${targetDate}(으)로 성공적으로 변경되었습니다.`
+      );
+    }
   } catch (err) {
     console.error('Drop handling error:', err);
   }
@@ -620,6 +675,17 @@ function selectCase(caseItem, switchToWorkspace = true) {
       metaMeeting.textContent = `${caseItem.meeting_date} (${ddayStr})`;
     } else {
       metaMeeting.textContent = '기일 미정';
+    }
+  }
+
+  const metaInterview = document.getElementById('metaInterviewSchedule');
+  if (metaInterview) {
+    const iDate = caseItem.interview_date || caseItem.assigned_date || '일정 미정';
+    const iTime = caseItem.interview_time || '10:00';
+    if (caseItem.interview_done) {
+      metaInterview.textContent = `${iDate} ${iTime} (상담완료)`;
+    } else {
+      metaInterview.textContent = `${iDate} ${iTime} (예약됨)`;
     }
   }
 
@@ -1380,8 +1446,18 @@ function initEventListeners() {
     });
   }
 
+  const tileInterview = document.getElementById('tileInterviewSchedule');
+  if (tileInterview) {
+    tileInterview.addEventListener('click', () => {
+      if (state.selectedCase) {
+        openInterviewScheduleModal(state.selectedCase);
+      }
+    });
+  }
+
   setupNewCaseModal();
   setupMoveDateModal();
+  setupInterviewScheduleModal();
 }
 
 function openExplorerModal() {
@@ -1614,7 +1690,130 @@ async function openFolderOnDisk(folderPath) {
   }
 }
 
-// 13. Toast Notification
+// 13. Consultation Schedule Picker Modal (1-hour discrete slot reservation)
+function setupInterviewScheduleModal() {
+  const modal = document.getElementById('interviewScheduleModal');
+  const closeBtn = document.getElementById('closeInterviewModalBtn');
+  const cancelBtn = document.getElementById('cancelInterviewModalBtn');
+  const form = document.getElementById('interviewScheduleForm');
+  const dateInput = document.getElementById('interviewDatePicker');
+  const timeSelect = document.getElementById('interviewTimePicker');
+  if (!modal || !form) return;
+
+  const closeModal = () => {
+    modal.classList.remove('open');
+    state.caseToSchedule = null;
+  };
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  if (dateInput) {
+    dateInput.addEventListener('change', () => {
+      const selDate = dateInput.value;
+      const curCaseNo = state.caseToSchedule?.case_number;
+      const curTime = state.caseToSchedule?.interview_time;
+      populateInterviewTimeSelect(selDate, curCaseNo, curTime);
+    });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!state.caseToSchedule) return;
+
+    const targetCase = state.caseToSchedule;
+    const newDate = dateInput.value;
+    const newTime = timeSelect.value;
+
+    if (!newDate || !newTime) return;
+
+    // Double-check collision
+    const booked = getBookedInterviewTimes(newDate, targetCase.case_number);
+    if (booked.includes(newTime)) {
+      alert(`⚠️ [예약 중복]\n\n해당 시간대(${newDate} ${newTime})는 이미 다른 사건의 상담이 예약되어 있습니다.\n다른 시간대를 선택해주세요.`);
+      return;
+    }
+
+    closeModal();
+    await updateCaseFlag(
+      targetCase,
+      {
+        assigned_date: newDate,
+        interview_date: newDate,
+        interview_time: newTime
+      },
+      `[${targetCase.debtor_name}] 상담 일시가 ${newDate} ${newTime}(으)로 예약되었습니다.`
+    );
+  });
+}
+
+function populateInterviewTimeSelect(selectedDate, excludeCaseNo, preferredTime = null) {
+  const timeSelect = document.getElementById('interviewTimePicker');
+  if (!timeSelect) return;
+  timeSelect.innerHTML = '';
+
+  // Find booked times with case info
+  const bookedMap = {};
+  (state.allCases || []).forEach(c => {
+    if (c && c.case_number !== excludeCaseNo && c.status !== '면책종결' && !c.interview_done) {
+      const dt = c.interview_date || c.assigned_date;
+      if (dt === selectedDate && c.interview_time) {
+        bookedMap[c.interview_time] = `${c.case_number} ${c.debtor_name || ''}`.trim();
+      }
+    }
+  });
+
+  let firstAvailable = null;
+
+  CONSULTATION_HOURS.forEach(h => {
+    const opt = document.createElement('option');
+    opt.value = h;
+    if (bookedMap[h]) {
+      opt.textContent = `🚫 ${h} (예약 마감 - ${bookedMap[h]})`;
+      opt.disabled = true;
+      opt.style.color = '#94a3b8';
+    } else {
+      opt.textContent = `🟢 ${h} (상담 예약 가능)`;
+      if (!firstAvailable) firstAvailable = h;
+    }
+
+    if (preferredTime === h && !bookedMap[h]) {
+      opt.selected = true;
+    }
+    timeSelect.appendChild(opt);
+  });
+
+  if (!timeSelect.value && firstAvailable) {
+    timeSelect.value = firstAvailable;
+  }
+}
+
+function openInterviewScheduleModal(caseItem) {
+  if (!caseItem) return;
+  state.caseToSchedule = caseItem;
+
+  const titleEl = document.getElementById('interviewModalCaseTitle');
+  if (titleEl) titleEl.textContent = `[${caseItem.case_number || ''}] ${caseItem.debtor_name || ''}`;
+
+  const curDate = caseItem.interview_date || caseItem.assigned_date || toDateISO(new Date());
+  const curTime = caseItem.interview_time || '10:00';
+
+  const dispEl = document.getElementById('interviewModalCurrentDisplay');
+  if (dispEl) dispEl.textContent = `현재 예약: ${curDate} ${curTime}`;
+
+  const dateInput = document.getElementById('interviewDatePicker');
+  if (dateInput) dateInput.value = curDate;
+
+  populateInterviewTimeSelect(curDate, caseItem.case_number, curTime);
+
+  const modal = document.getElementById('interviewScheduleModal');
+  if (modal) modal.classList.add('open');
+}
+
+// 14. Toast Notification
 let toastTimer = null;
 function showToast(msg) {
   const toast = document.getElementById('toast');

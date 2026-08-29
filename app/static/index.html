@@ -133,7 +133,7 @@
           </div>
         </div>
 
-        <!-- 4-Column Metrics Grid -->
+        <!-- 5-Column Metrics Grid -->
         <div class="metrics-grid-container">
           <div class="metric-tile">
             <span class="metric-label">관할 법원</span>
@@ -141,11 +141,15 @@
           </div>
           <div class="metric-tile">
             <span class="metric-label">전화번호</span>
-            <span class="metric-value font-mono" id="metaPhone">010-0000-0000</span>
+            <span class="metric-value" id="metaPhone">010-0000-0000</span>
+          </div>
+          <div class="metric-tile" id="tileInterviewSchedule" title="클릭하여 상담 일시 변경" style="cursor:pointer; background:#f0f9ff; border-color:#bae6fd;">
+            <span class="metric-label" style="color:#0369a1;">상담 일시 (1시간 예약) ✏️</span>
+            <span class="metric-value" style="color:#0284c7;" id="metaInterviewSchedule">2026-08-31 10:00</span>
           </div>
           <div class="metric-tile">
             <span class="metric-label">채권자집회 기일</span>
-            <span class="metric-value font-mono" style="color:#8b2635;" id="metaMeetingDate">2026-09-01 (D-3)</span>
+            <span class="metric-value" style="color:#8b2635;" id="metaMeetingDate">2026-09-01 (D-3)</span>
           </div>
           <div class="metric-tile">
             <span class="metric-label">채무액</span>
@@ -491,6 +495,39 @@
           <div class="sub-modal-actions">
             <button type="button" class="btn-cancel" id="cancelMoveDateBtn">취소</button>
             <button type="submit" class="btn-submit">🚚 폴더 이동 확정</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 7. 📞 CONSULTATION SCHEDULE PICKER MODAL (1시간 단위 예약 모달) 📞 -->
+    <div class="sub-modal-backdrop" id="interviewScheduleModal">
+      <div class="sub-modal-card" style="max-width: 480px;">
+        <div class="sub-modal-header">
+          <h2 class="sub-modal-title">📞 채무자 1차 상담 일시 예약 (1시간 단위)</h2>
+          <button class="btn-close-sub" id="closeInterviewModalBtn">✕</button>
+        </div>
+        <form class="sub-modal-form" id="interviewScheduleForm">
+          <div style="background:#f0f9ff; padding:12px 14px; border-radius:8px; border:1px solid #bae6fd; margin-bottom:12px;">
+            <div style="font-size:16px; color:#0369a1;" id="interviewModalCaseTitle">[2026하면0801] 김인철</div>
+            <div style="font-size:13px; color:#0284c7; margin-top:2px;" id="interviewModalCurrentDisplay">현재 예약: 2026-08-31 10:00</div>
+          </div>
+
+          <div class="form-group">
+            <label>상담 희망 일자 <span class="req">*</span></label>
+            <input type="date" id="interviewDatePicker" required>
+          </div>
+
+          <div class="form-group">
+            <label>상담 가능 시간대 (중복 예약 방지) <span class="req">*</span></label>
+            <select id="interviewTimePicker" required>
+              <!-- Populated dynamically with available slots, disabled slots marked (예약됨) -->
+            </select>
+          </div>
+
+          <div class="sub-modal-actions">
+            <button type="button" class="btn-cancel" id="cancelInterviewModalBtn">취소</button>
+            <button type="submit" class="btn-submit">💾 상담 일정 저장</button>
           </div>
         </form>
       </div>
