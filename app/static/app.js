@@ -760,7 +760,22 @@ function renderYearCards(container) {
 
 function renderMonthCards(container) {
   const selYear = state.navPath[0];
-  const months = ['01월_배정사건', '02월_배정사건', '03월_배정사건', '04월_배정사건', '05월_배정사건', '06월_배정사건', '07월_배정사건', '08월_배정사건', '09월_배정사건', '10월_배정사건', '11월_배정사건', '12월_배정사건'];
+  
+  // 1. Dynamically extract only existing month categories for this year
+  const monthSet = new Set();
+  state.allCases.forEach(c => {
+    if (c?.year === selYear && c?.month_category && c.month_category !== '기타') {
+      monthSet.add(c.month_category);
+    }
+  });
+
+  // 2. Sort strictly in Descending order (Latest month first: 08월 -> 07월 -> 06월...)
+  const months = Array.from(monthSet).sort().reverse();
+
+  if (months.length === 0) {
+    container.innerHTML = '<div style="padding:40px; text-align:center; color:#99f6e4; font-size:16px;">등록된 배정 월 폴더가 없습니다.</div>';
+    return;
+  }
 
   const grid = document.createElement('div');
   grid.className = 'mockup-folders-grid';
@@ -819,6 +834,9 @@ function renderCaseCards(container) {
     return;
   }
 
+  // Sort case cards descending (Latest case numbers first)
+  filtered.sort((a, b) => (b.case_number || '').localeCompare(a.case_number || ''));
+
   const grid = document.createElement('div');
   grid.className = 'mockup-case-grid-3col';
 
@@ -830,6 +848,8 @@ function renderCaseCards(container) {
 
   container.appendChild(grid);
 }
+
+
 
 function renderSearchResults(container) {
   const q = state.searchQuery.trim();
