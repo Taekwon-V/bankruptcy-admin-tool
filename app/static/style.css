@@ -692,15 +692,15 @@ body {
   background-color: #10b981;
   color: #ffffff;
   border: none;
-  height: 34px;
-  padding: 0 14px;
+  height: 38px;
+  padding: 0 16px;
   border-radius: var(--radius-pill);
-  font-size: 13.5px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   transition: all var(--trans-fast);
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
 }
@@ -710,8 +710,6 @@ body {
   transform: translateY(-1px);
 }
 
-
-
 /* Search Bar on Top */
 .modal-search-box {
   display: flex;
@@ -719,8 +717,8 @@ body {
   background-color: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-pill);
-  padding: 9px 16px;
-  gap: 10px;
+  padding: 10px 18px;
+  gap: 12px;
 }
 
 .search-svg {
@@ -732,8 +730,8 @@ body {
   flex: 1;
   border: none;
   outline: none;
-  font-size: 16.5px;
-  font-weight: 500;
+  font-size: 19px;
+  font-weight: 400;
   background: transparent;
   color: #ffffff;
   letter-spacing: -0.015em;
@@ -748,17 +746,17 @@ body {
   border: none;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  font-size: 15px;
+  font-size: 16px;
   padding: 0 6px;
 }
 
 .btn-esc {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 400;
   color: #ffffff;
   background-color: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
@@ -767,11 +765,11 @@ body {
 .mockup-status-capsule {
   background-color: var(--capsule-bg);
   border-radius: var(--radius-pill);
-  padding: 7px 10px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 7px;
+  gap: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow-x: auto;
 }
@@ -781,10 +779,10 @@ body {
   background-color: #ffffff;
   color: #111827;
   border: none;
-  padding: 6px 15px;
+  padding: 7px 16px;
   border-radius: var(--radius-pill);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16.5px;
+  font-weight: 500;
   cursor: pointer;
   transition: all var(--trans-fast);
   white-space: nowrap;
@@ -799,6 +797,7 @@ body {
 .mockup-pill-btn.active {
   background-color: #f59e0b; /* Golden Amber */
   color: #ffffff;
+  font-weight: 600;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.5);
 }
 
@@ -814,8 +813,8 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 17.5px;
+  font-weight: 400;
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -824,6 +823,7 @@ body {
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
+  font-weight: 400;
   transition: background-color var(--trans-fast);
 }
 
@@ -833,25 +833,26 @@ body {
 
 .nav-crumb.active {
   color: #fde047; /* Yellow Accent */
+  font-weight: 500;
   cursor: default;
 }
 
 .crumb-sep {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .btn-nav-up {
   background-color: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 3px 11px;
+  padding: 4px 14px;
   border-radius: var(--radius-pill);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 400;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   cursor: pointer;
 }
 

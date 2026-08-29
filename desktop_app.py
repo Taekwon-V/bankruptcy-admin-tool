@@ -230,16 +230,44 @@ class DesktopAPI:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+def get_left_half_screen_geometry():
+    """사용자 모니터의 실제 작업영역(작업표시줄 제외)을 감지하여 좌측 50% 분할 좌표 및 크기 계산"""
+    try:
+        if sys.platform == 'win32':
+            import ctypes
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            
+            # SPI_GETWORKAREA = 48 (작업표시줄 제외 가용 영역)
+            class RECT(ctypes.Structure):
+                _fields_ = [('left', ctypes.c_long), ('top', ctypes.c_long), ('right', ctypes.c_long), ('bottom', ctypes.c_long)]
+            rect = RECT()
+            if user32.SystemParametersInfoW(48, 0, ctypes.byref(rect), 0):
+                work_w = rect.right - rect.left
+                work_h = rect.bottom - rect.top
+                win_w = max(720, work_w // 2)
+                win_h = max(600, work_h)
+                win_x = rect.left
+                win_y = rect.top
+                return win_x, win_y, win_w, win_h
+    except Exception as e:
+        print(f"Screen geometry detection fallback: {e}")
+        
+    return 0, 0, 960, 1040
+
 def main():
     api = DesktopAPI()
+    win_x, win_y, win_w, win_h = get_left_half_screen_geometry()
 
-    # Create native standalone Desktop Window (Spacious & Crisp)
+    # Create native standalone Desktop Window (좌측 50% 기본 밀착 모드)
     window = webview.create_window(
         title='⚖️ 파산관제 스마트 매니저 (설치형 데스크톱 프로그램)',
         url=INDEX_HTML,
-        width=1100,
-        height=980,
-        min_size=(800, 700),
+        x=win_x,
+        y=win_y,
+        width=win_w,
+        height=win_h,
+        min_size=(680, 600),
         resizable=True,
         text_select=True,
         js_api=api
