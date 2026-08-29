@@ -163,7 +163,9 @@ const state = {
   caseToMove: null
 };
 
-// 4. Initialization
+// 4. Initialization Guard (Prevents double event listener attachment)
+let isAppInitialized = false;
+
 window.addEventListener('pywebviewready', () => {
   initApp();
 });
@@ -173,6 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
+  if (isAppInitialized) {
+    loadCases();
+    return;
+  }
+  isAppInitialized = true;
   initEventListeners();
   loadCases();
 }
