@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Bankruptcy Admin Tool - 🔒 Zero External Leak / Strict Local Privacy
+# 실제 사건 데이터 및 개인정보가 포함된 폴더/파일은 깃헙에 절대 커밋되지 않습니다.
+사건저장소/
+사건저장소_샘플/
+storage_config.json
+*.log
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary scratchpad
+scratch/
+.system_generated/

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>파산관제 스마트 매니저</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container" id="appContainer">
+
+    <!-- 1. Top Minimal Header Bar (54px) -->
+    <header class="top-header">
+      <div class="header-left">
+        <!-- Floating Explorer Button -->
+        <button class="btn-explorer" id="openExplorerBtn" title="사건 탐색기 열기 (Ctrl+K)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>사건 탐색기</span>
+          <kbd class="kbd-badge">Ctrl+K</kbd>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <!-- Current Active Case Indicator -->
+        <div class="current-case-indicator" id="headerCaseBadge" title="클릭하여 다른 사건 검색">
+          <span class="type-pill" id="headerCaseType">개인</span>
+          <span class="case-no-display" id="headerCaseNo">2026하면0201</span>
+          <span class="debtor-display" id="headerDebtorName">이지은</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+
+      <!-- Header Tools (Right) -->
+      <div class="header-right">
+        <button class="btn-ghost" id="openCurrentFolderBtn" title="현재 사건 윈도우 탐색기 폴더 열기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>폴더 열기</span>
+        </button>
+        <button class="btn-icon-ghost" id="fitHalfScreenBtn" title="반 화면 고정 모드 (너비 960px / 100% 토글)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. Main Workspace -->
+    <main class="workspace" id="workspace">
+
+      <!-- Case Hero Banner Card -->
+      <section class="card hero-card" id="caseHeroCard">
+        <div class="hero-header-row">
+          <div class="hero-identity">
+            <span class="badge-type-pill" id="heroCaseType">개인파산</span>
+            <span class="badge-status-pill" id="heroStatusBadge">신규접수</span>
+            <h1 class="hero-case-no" id="heroCaseTitle">2026하면0201</h1>
+            <span class="hero-debtor-name" id="heroDebtorName">이지은</span>
+          </div>
+          <div class="hero-btn-group">
+            <button class="btn-primary" id="heroOpenFolderBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>폴더 열기</span>
+            </button>
+            <button class="btn-secondary" id="copyCaseNoBtn" title="사건번호 클립보드 복사">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>사건번호 복사</span>
+            </button>
+            <button class="btn-secondary" id="copyDebtorBtn" title="채무자명 클립보드 복사">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>채무자명 복사</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4-Column Metrics Grid -->
+        <div class="metrics-grid-container">
+          <div class="metric-tile">
+            <span class="metric-label">관할 법원</span>
+            <span class="metric-value" id="metaCourt">서울회생법원</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-label">배정 일자</span>
+            <span class="metric-value font-mono" id="metaAssignedDate">2026-02-10</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-label">채권자집회 기일</span>
+            <span class="metric-value font-mono" style="color:#e11d48;" id="metaMeetingDate">2026-04-11 (D-43)</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-label">신고 총 채무액</span>
+            <span class="metric-value" style="color:#0284c7;" id="metaDebtAmount">1억 1,000만 원</span>
+          </div>
+        </div>
+
+        <!-- Case Memo Alert Box -->
+        <div class="memo-callout">
+          <div class="memo-badge">관제 메모</div>
+          <p class="memo-content" id="metaMemoText">신규 접수 사건입니다. 1차 제출 서류 완비 여부 검토가 필요합니다.</p>
+        </div>
+      </section>
+
+      <!-- Status Pipeline Stepper -->
+      <section class="card pipeline-card">
+        <div class="card-title-row">
+          <div class="title-with-dot">
+            <span class="section-indicator-dot"></span>
+            <h2 class="card-heading">사건 진행 단계</h2>
+          </div>
+          <span class="card-sub-hint">현재 진행 중인 단계가 강조됩니다</span>
+        </div>
+
+        <div class="pipeline-stepper" id="pipelineStepper">
+          <div class="stepper-step" data-step="신규접수">
+            <div class="stepper-circle">1</div>
+            <span class="stepper-label">신규접수</span>
+          </div>
+          <div class="stepper-track"></div>
+          <div class="stepper-step" data-step="서류보정중">
+            <div class="stepper-circle">2</div>
+            <span class="stepper-label">서류보정</span>
+          </div>
+          <div class="stepper-track"></div>
+          <div class="stepper-step" data-step="통장분석중">
+            <div class="stepper-circle">3</div>
+            <span class="stepper-label">통장분석</span>
+          </div>
+          <div class="stepper-track"></div>
+          <div class="stepper-step" data-step="채권자집회대기">
+            <div class="stepper-circle">4</div>
+            <span class="stepper-label">채권자집회</span>
+          </div>
+          <div class="stepper-track"></div>
+          <div class="stepper-step" data-step="환가배당진행">
+            <div class="stepper-circle">5</div>
+            <span class="stepper-label">환가배당</span>
+          </div>
+          <div class="stepper-track"></div>
+          <div class="stepper-step" data-step="면책종결">
+            <div class="stepper-circle">6</div>
+            <span class="stepper-label">면책종결</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Folder Directory & Files -->
+      <section class="card folder-card">
+        <div class="card-title-row">
+          <div class="folder-title-box">
+            <div class="title-with-dot">
+              <span class="section-indicator-dot"></span>
+              <h2 class="card-heading">사건 표준 폴더 및 보관 서류</h2>
+            </div>
+            <span class="folder-path-code" id="currentFolderPathDisplay">C:\work\bankruptcy-admin-tool\...</span>
+          </div>
+          <button class="btn-secondary btn-sm" id="folderExploreBtn">
+            <span>탐색기 열기</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </button>
+        </div>
+
+        <div class="subfolders-hairline-grid" id="subfoldersGrid">
+          <div class="subfolder-tile" data-sub="01_기본서류">
+            <div class="subfolder-header">
+              <svg class="folder-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="subfolder-title">01_기본서류</span>
+              <span class="file-count-tag" id="count-01">0</span>
+            </div>
+            <ul class="file-ul" id="files-01"></ul>
+          </div>
+
+          <div class="subfolder-tile" data-sub="02_금융내역">
+            <div class="subfolder-header">
+              <svg class="folder-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <span class="subfolder-title">02_금융내역</span>
+              <span class="file-count-tag" id="count-02">0</span>
+            </div>
+            <ul class="file-ul" id="files-02"></ul>
+          </div>
+
+          <div class="subfolder-tile" data-sub="03_보정소명자료">
+            <div class="subfolder-header">
+              <svg class="folder-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span class="subfolder-title">03_보정소명자료</span>
+              <span class="file-count-tag" id="count-03">0</span>
+            </div>
+            <ul class="file-ul" id="files-03"></ul>
+          </div>
+
+          <div class="subfolder-tile" data-sub="04_보고서_산출물">
+            <div class="subfolder-header">
+              <svg class="folder-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span class="subfolder-title">04_보고서_산출물</span>
+              <span class="file-count-tag" id="count-04">0</span>
+            </div>
+            <ul class="file-ul" id="files-04"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upcoming Roadmap -->
+      <section class="card roadmap-card">
+        <div class="card-title-row">
+          <div class="title-with-dot">
+            <span class="section-indicator-dot" style="background-color:#0284c7;"></span>
+            <h2 class="card-heading">개발 예정 모듈 (Phase 2 ~ 4)</h2>
+          </div>
+        </div>
+        <div class="roadmap-hairline-grid">
+          <div class="roadmap-tile">
+            <div class="roadmap-phase-tag">Phase 2</div>
+            <h3 class="roadmap-title">통장 금융거래 자동 분석기</h3>
+            <p class="roadmap-desc">수년 치 은행 엑셀에서 300/500만 원 고액 인출, 편파변제, 코인/도박 거래처 자동 추출</p>
+            <span class="roadmap-status">고객 미팅 후 착수</span>
+          </div>
+          <div class="roadmap-tile">
+            <div class="roadmap-phase-tag">Phase 3</div>
+            <h3 class="roadmap-title">법원 보고서(HWPX) & 배당표</h3>
+            <p class="roadmap-desc">분석된 재산 및 채권 데이터를 법원 공식 한글 양식에 1초 만에 자동 기입하여 출력</p>
+            <span class="roadmap-status">대기 중</span>
+          </div>
+          <div class="roadmap-tile">
+            <div class="roadmap-phase-tag">Phase 4</div>
+            <h3 class="roadmap-title">서류 누락 체크 & 보정명령서</h3>
+            <p class="roadmap-desc">14~20종 필수 서류 유효기간 대조 및 원클릭 보정 요청서 한글 생성</p>
+            <span class="roadmap-status">대기 중</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 3. 🔥 DEEP TEAL CASE EXPLORER MODAL (3x3 Grid & +신규사건등록) 🔥 -->
+    <div class="modal-backdrop" id="explorerModalOverlay">
+      <div class="explorer-modal-card">
+        
+        <!-- Row 1: Big Title + [+신규 사건 등록] + [ESC 닫기] -->
+        <div class="mockup-header-row">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <h1 class="mockup-main-title">사건 탐색기</h1>
+            <!-- New Case Registration Button -->
+            <button class="btn-create-case" id="openNewCaseModalBtn">
+              <span>+ 신규 사건 등록</span>
+            </button>
+          </div>
+          <button class="btn-esc" id="closeExplorerBtn">ESC 닫기</button>
+        </div>
+
+        <!-- Row 2: Keyword Search Bar -->
+        <div class="modal-search-box">
+          <svg class="search-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="explorerSearchInput" placeholder="사건번호, 채무자 초성(ㅎㄱㄷ), 법원 검색..." autocomplete="off">
+          <button class="btn-clear" id="modalClearSearchBtn" style="display:none;">✕</button>
+        </div>
+
+        <!-- Row 3: Dark Capsule with 7 White Pill Buttons (All + 6 Pipeline Statuses) -->
+        <div class="mockup-status-capsule">
+          <button class="mockup-pill-btn active" data-status="ALL" id="pill-all">
+            전체 : 40 건
+          </button>
+          <button class="mockup-pill-btn" data-status="NEW" id="pill-new">
+            신규 접수 : 10 건
+          </button>
+          <button class="mockup-pill-btn" data-status="DOC_CORRECTION" id="pill-doc">
+            서류 보정 : 4 건
+          </button>
+          <button class="mockup-pill-btn" data-status="BANK_ANALYSIS" id="pill-bank">
+            통장 분석 : 9 건
+          </button>
+          <button class="mockup-pill-btn" data-status="MEETING" id="pill-meet">
+            집회·보고 : 8 건
+          </button>
+          <button class="mockup-pill-btn" data-status="DIVIDEND" id="pill-dividend">
+            환가·배당 : 3 건
+          </button>
+          <button class="mockup-pill-btn" data-status="CLOSED" id="pill-closed">
+            면책·종결 : 6 건
+          </button>
+        </div>
+
+        <!-- Row 4: Breadcrumb Path Bar -->
+        <div class="mockup-nav-bar">
+          <div class="nav-breadcrumbs" id="breadcrumbsList">
+            <span class="nav-crumb active" data-level="root">📁 사건저장소</span>
+          </div>
+          <button class="btn-nav-up" id="btnUpLevel" style="display:none;" title="상위 폴더로 이동">
+            <span>⬆ 상위로</span>
+          </button>
+        </div>
+
+        <!-- Row 5: Cards Content Area (3x3 Grid with smooth scrolling) -->
+        <div class="modal-explorer-body" id="explorerContentArea"></div>
+
+        <!-- Row 6: Modal Footer -->
+        <div class="modal-footer-bar">
+          <span id="explorerSummaryText">사건저장소 최상위 폴더 (2개 연도)</span>
+          <div class="footer-keys">
+            <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 이동</span>
+            <span><kbd>Enter</kbd> 선택</span>
+            <span><kbd>ESC</kbd> 닫기</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 4. 📝 NEW CASE REGISTRATION MODAL 📝 -->
+    <div class="sub-modal-backdrop" id="newCaseModal">
+      <div class="sub-modal-card">
+        <div class="sub-modal-header">
+          <h2 class="sub-modal-title">📁 신규 사건 등록 및 폴더 자동 생성</h2>
+          <button class="btn-close-sub" id="closeNewCaseModalBtn">✕</button>
+        </div>
+        <form class="sub-modal-form" id="newCaseForm">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>배정 년도</label>
+              <select id="newCaseYear" required>
+                <option value="2026">2026년</option>
+                <option value="2025">2025년</option>
+                <option value="2027">2027년</option>
+                <option value="2028">2028년</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>배정 월</label>
+              <select id="newCaseMonth" required>
+                <option value="01">01월</option>
+                <option value="02" selected>02월</option>
+                <option value="03">03월</option>
+                <option value="04">04월</option>
+                <option value="05">05월</option>
+                <option value="06">06월</option>
+                <option value="07">07월</option>
+                <option value="08">08월</option>
+                <option value="09">09월</option>
+                <option value="10">10월</option>
+                <option value="11">11월</option>
+                <option value="12">12월</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>사건 번호 <span class="req">*</span></label>
+              <input type="text" id="newCaseNumber" placeholder="예: 2026하면0211" required>
+            </div>
+            <div class="form-group">
+              <label>채무자명 (또는 법인명) <span class="req">*</span></label>
+              <input type="text" id="newCaseDebtorName" placeholder="예: 홍길동 / (주)한국상사" required>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>전화번호</label>
+              <input type="text" id="newCasePhone" placeholder="010-0000-0000" value="010-0000-0000">
+            </div>
+            <div class="form-group">
+              <label>사건 유형</label>
+              <select id="newCaseType">
+                <option value="개인파산" selected>개인파산</option>
+                <option value="법인파산">법인파산</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>관할 법원</label>
+              <select id="newCaseCourt">
+                <option value="인천지방법원" selected>인천지방법원</option>
+                <option value="서울회생법원">서울회생법원</option>
+                <option value="수원회생법원">수원회생법원</option>
+                <option value="부산회생법원">부산회생법원</option>
+                <option value="대구지방법원">대구지방법원</option>
+                <option value="대전지방법원">대전지방법원</option>
+                <option value="광주지방법원">광주지방법원</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>신고 총 채무액 (원)</label>
+              <input type="text" id="newCaseTotalDebt" placeholder="예: 150,000,000" value="100,000,000">
+              <div class="korean-debt-preview" id="koreanDebtPreview">
+                💰 1억 원
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>관제 초기 메모</label>
+            <textarea id="newCaseMemo" rows="2" placeholder="사건 특이사항 및 초기 검토 메모...">신규 등록된 사건입니다. 1차 제출 서류 완비 여부 검토가 필요합니다.</textarea>
+          </div>
+
+          <div class="sub-modal-actions">
+            <button type="button" class="btn-cancel" id="cancelNewCaseBtn">취소</button>
+            <button type="submit" class="btn-submit">📁 폴더 자동 생성 및 사건 등록</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. 📅 EDIT CASE YEAR/MONTH (MOVE FOLDER) MODAL 📅 -->
+    <div class="sub-modal-backdrop" id="moveDateModal">
+      <div class="sub-modal-card" style="max-width: 480px;">
+        <div class="sub-modal-header">
+          <h2 class="sub-modal-title">📅 배정 년도 및 월 변경 (폴더 이동)</h2>
+          <button class="btn-close-sub" id="closeMoveDateModalBtn">✕</button>
+        </div>
+        <form class="sub-modal-form" id="moveDateForm">
+          <div style="background:#f8fafc; padding:12px 14px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:12px;">
+            <div style="font-weight:800; font-size:16px; color:#0f172a;" id="moveTargetCaseTitle">[2026하면0201] 이지은</div>
+            <div style="font-size:12.5px; color:#64748b; margin-top:2px;" id="moveCurrentPathDisplay">현재 위치: 2026년 / 02월_배정사건</div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>변경할 년도</label>
+              <select id="moveDestYear" required>
+                <option value="2026">2026년</option>
+                <option value="2025">2025년</option>
+                <option value="2027">2027년</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>변경할 월</label>
+              <select id="moveDestMonth" required>
+                <option value="01">01월</option>
+                <option value="02">02월</option>
+                <option value="03">03월</option>
+                <option value="04">04월</option>
+                <option value="05">05월</option>
+                <option value="06">06월</option>
+                <option value="07">07월</option>
+                <option value="08">08월</option>
+                <option value="09">09월</option>
+                <option value="10">10월</option>
+                <option value="11">11월</option>
+                <option value="12">12월</option>
+              </select>
+            </div>
+          </div>
+
+          <p style="font-size:12.5px; color:#dc2626; line-height:1.45; margin-top:4px;">
+            ⚠️ <strong>주의:</strong> 변경 시 실제 디스크 상의 폴더 위치가 이동됩니다. 한글(HWP), 엑셀, 워드 등에서 서류가 열려 있으면 이동이 중단됩니다.
+          </p>
+
+          <div class="sub-modal-actions">
+            <button type="button" class="btn-cancel" id="cancelMoveDateBtn">취소</button>
+            <button type="submit" class="btn-submit">🚚 폴더 이동 확정</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-box" id="toast"></div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
