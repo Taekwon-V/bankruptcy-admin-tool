@@ -1272,6 +1272,9 @@ function initEventListeners() {
     openExplorerModal();
   });
 
+  const kpiNewCaseCard = document.getElementById('kpiNewCaseCard');
+  if (kpiNewCaseCard) kpiNewCaseCard.addEventListener('click', openNewCaseModal);
+
   // Modal Triggers: 3x3 Explorer Modal
   const openExplorerBtn = document.getElementById('openExplorerBtn');
   if (openExplorerBtn) openExplorerBtn.addEventListener('click', () => {

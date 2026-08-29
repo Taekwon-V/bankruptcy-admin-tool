@@ -1489,12 +1489,14 @@ body {
   color: #8b2635;
 }
 
-.kpi-stat-card.explorer-action-card {
+.kpi-stat-card.explorer-action-card,
+.kpi-stat-card.newcase-action-card {
   background: #fcfbf8;
   border-color: #e0dacb;
 }
 
-.kpi-stat-card.explorer-action-card:hover {
+.kpi-stat-card.explorer-action-card:hover,
+.kpi-stat-card.newcase-action-card:hover {
   background: #f4ede0;
   border-color: #cdc4af;
 }
@@ -1521,6 +1523,13 @@ body {
   font-size: 34px;
   margin-top: 3px;
   line-height: 1;
+}
+
+.kpi-card-num.newcase-icon {
+  font-size: 30px;
+  margin-top: 5px;
+  line-height: 1;
+  color: #1e3322;
 }
 
 /* ==========================================================================
