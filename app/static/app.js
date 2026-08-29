@@ -288,7 +288,7 @@ function renderWeeklyCalendar() {
 
   container.innerHTML = '';
 
-  // Calculate Monday of Week 1
+  // Calculate Monday of Week 1 (Moves by 1 week per shift, displaying 2 consecutive weeks)
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
@@ -296,7 +296,7 @@ function renderWeeklyCalendar() {
   // If Sunday(0), offset back to Monday of the week
   const diffToMon = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
   const startMonday = new Date(now);
-  startMonday.setDate(now.getDate() + diffToMon + (state.calendarWeekOffset * 14));
+  startMonday.setDate(now.getDate() + diffToMon + (state.calendarWeekOffset * 7));
 
   const weekdays = ['월', '화', '수', '목', '금'];
   
@@ -358,7 +358,7 @@ function renderWeeklyCalendar() {
           if (c.report_submitted) {
             events.push({
               type: 'REPORT',
-              typeLabel: '📑 보고서',
+              typeLabel: '보고서',
               badgeClass: 'report',
               field: 'meeting_date',
               caseItem: c
@@ -366,7 +366,7 @@ function renderWeeklyCalendar() {
           } else {
             events.push({
               type: 'MEETING',
-              typeLabel: '🗓️ 기일',
+              typeLabel: '기일',
               badgeClass: 'meeting',
               field: 'meeting_date',
               caseItem: c
@@ -376,7 +376,7 @@ function renderWeeklyCalendar() {
           if (!c.interview_done) {
             events.push({
               type: 'INTERVIEW',
-              typeLabel: '📞 상담',
+              typeLabel: '상담',
               badgeClass: 'interview',
               field: 'assigned_date',
               caseItem: c
@@ -384,7 +384,7 @@ function renderWeeklyCalendar() {
           } else if (!c.docs_completed) {
             events.push({
               type: 'DOCS',
-              typeLabel: '📄 서류',
+              typeLabel: '서류',
               badgeClass: 'docs',
               field: 'assigned_date',
               caseItem: c
@@ -428,7 +428,7 @@ function renderWeeklyCalendar() {
 
       const body = col.querySelector('.weekday-col-body');
 
-      // Render Compact Drag-and-Drop Event Chips (Only Badge + Case No + Debtor Name)
+      // Render Compact Drag-and-Drop Event Chips (Uniform Badge Size + No Icons)
       events.forEach(ev => {
         const chip = document.createElement('div');
         chip.className = 'cal-event-chip';
@@ -448,7 +448,7 @@ function renderWeeklyCalendar() {
             caseNumber: ev.caseItem.case_number,
             debtorName: ev.caseItem.debtor_name,
             eventType: ev.type,
-            eventTypeLabel: ev.typeLabel.replace(/[^\uAC00-\uD7AFa-zA-Z]/g, ''), // e.g. "기일", "상담", "서류", "보고서"
+            eventTypeLabel: ev.typeLabel, // e.g. "기일", "상담", "서류", "보고서"
             fromDate: dateISO,
             folderPath: ev.caseItem.folder_path
           };
