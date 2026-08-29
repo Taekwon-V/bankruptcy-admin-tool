@@ -22,18 +22,25 @@ function getChosung(str) {
   return result;
 }
 
+function isPureChosung(str) {
+  return /^[\u3131-\u314E\s]+$/.test(str);
+}
+
 function matchSearch(text, query) {
   if (!query) return true;
   if (!text) return false;
   const cleanQuery = query.toLowerCase().replace(/\s+/g, '');
   const cleanText = text.toLowerCase().replace(/\s+/g, '');
   
+  // 1. Exact/Substring text match
   if (cleanText.includes(cleanQuery)) return true;
   
-  const textChosung = getChosung(cleanText);
-  const queryChosung = getChosung(cleanQuery);
-  if (textChosung.includes(cleanQuery) || textChosung.includes(queryChosung)) {
-    return true;
+  // 2. Initial consonant match ONLY when user query is pure chosung (e.g. 'ㄱㅇㅊ', 'ㅎㄱㄷ')
+  if (isPureChosung(cleanQuery)) {
+    const textChosung = getChosung(cleanText);
+    if (textChosung.includes(cleanQuery)) {
+      return true;
+    }
   }
   return false;
 }
@@ -420,9 +427,8 @@ function renderSearchMode(container, summary, query) {
     const matchesQuery = (
       matchSearch(c.case_number, query) ||
       matchSearch(c.debtor_name, query) ||
-      matchSearch(c.court, query) ||
-      matchSearch(c.status, query) ||
-      matchSearch(c.memo, query)
+      matchSearch(c.phone, query) ||
+      matchSearch(c.court, query)
     );
     const matchesStatus = matchesStatusFilter(c.status, state.activeFilter);
     return matchesQuery && matchesStatus;
@@ -458,61 +464,36 @@ function createCaseCardElement(caseItem, isSelected = false, showPath = false) {
   
   const cfg = STATUS_CONFIG[caseItem?.status] || { color: '#0284c7', bg: '#e0f2fe', label: caseItem?.status || '신규' };
 
-  // D-Day
-  let ddayStr = '';
-  if (caseItem?.meeting_date) {
-    const today = new Date();
-    const meetingDate = new Date(caseItem.meeting_date);
-    const diffDays = Math.ceil((meetingDate - today) / (1000 * 60 * 60 * 24));
-    ddayStr = diffDays >= 0 ? ` (D-${diffDays})` : ` (D+${Math.abs(diffDays)})`;
-  }
-
-  const pathHtml = showPath ? `<span style="font-size:11px; color:#64748b; font-weight:600;">[${caseItem?.year || ''} ${(caseItem?.month_category || '').replace('_',' ')}]</span>` : '';
-
-  // Enlarged 6-step progress bar (without "(파이프 라인)")
-  const steps = ['신규접수', '서류보정중', '통장분석중', '채권자집회대기', '환가배당진행', '면책종결'];
-  const curIdx = steps.indexOf(caseItem?.status);
-  let dotsHtml = '';
-  steps.forEach((s, idx) => {
-    if (idx < curIdx) dotsHtml += `<span class="stepper-dot done" title="${s}"></span>`;
-    else if (idx === curIdx) dotsHtml += `<span class="stepper-dot current" title="${s}"></span>`;
-    else dotsHtml += `<span class="stepper-dot" title="${s}"></span>`;
-  });
-
   const caseNo = caseItem?.case_number || '-';
   const debtorName = caseItem?.debtor_name || '-';
   const phone = caseItem?.phone || '010-0000-0000';
-  const court = caseItem?.court || '서울회생법원';
+  const court = caseItem?.court || '인천지방법원';
   const caseType = caseItem?.case_type === '법인파산' ? '법인' : '개인';
   const statusLabel = caseItem?.status || '신규접수';
 
   const debtAmt = formatKoreanFullAmount(caseItem?.total_debt || 0);
+  const pathHtml = showPath ? `<div class="case-card-search-path">📁 ${caseItem?.year || ''} · ${(caseItem?.month_category || '').replace('_',' ')}</div>` : '';
 
   card.innerHTML = `
     <div class="case-card-header">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span class="case-card-no">${caseNo}</span>
-        ${pathHtml}
-      </div>
-      <div class="case-card-actions">
-        <button class="btn-edit-date" title="배정 년도 및 월 변경 (폴더 이동)">📅 이동</button>
-        <span class="case-card-status-pill" style="background-color:${cfg.bg}; color:${cfg.color};">${statusLabel}</span>
-      </div>
+      <span class="case-card-no">${caseNo}</span>
+      <span class="case-card-status-pill" style="background-color:${cfg.bg}; color:${cfg.color};">${statusLabel}</span>
     </div>
+    ${pathHtml}
     <div class="case-card-debtor">${debtorName}</div>
     <div class="case-card-details">
       <div class="case-detail-row">
         <span class="check-icon">✓</span>
-        <span>${phone} · ${court} (${caseType})</span>
+        <span>전화번호 : ${phone}</span>
       </div>
       <div class="case-detail-row">
         <span class="check-icon">✓</span>
-        <span>신고 채무액 : <strong>${debtAmt.formattedWon}</strong> (${debtAmt.shortKorean})</span>
+        <span>채무액 : <strong>${debtAmt.formattedWon}</strong> (${debtAmt.shortKorean})</span>
       </div>
     </div>
-    <div class="case-card-pipeline-box">
-      <span>사건 진행 단계</span>
-      <div class="enlarged-pipeline-stepper">${dotsHtml}</div>
+    <div class="case-card-footer">
+      <span class="case-card-subinfo">${court} (${caseType})</span>
+      <button class="btn-edit-date" title="배정 년도 및 월 변경 (폴더 이동)">🗓️ 이동</button>
     </div>
   `;
 
