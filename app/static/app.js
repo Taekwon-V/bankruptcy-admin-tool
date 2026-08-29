@@ -45,7 +45,24 @@ function matchSearch(text, query) {
   return false;
 }
 
-// 1-1. Korean Currency Formatter (깔끔한 단일 표기: 1억 2,345만 6,789 원)
+// 1-1. Korean Phone Formatter (000-0000-0000)
+function formatKoreanPhoneNumber(value) {
+  if (!value) return '';
+  const raw = value.replace(/[^0-9]/g, '');
+  if (raw.startsWith('02')) {
+    if (raw.length <= 2) return raw;
+    if (raw.length <= 5) return `${raw.slice(0, 2)}-${raw.slice(2)}`;
+    if (raw.length <= 9) return `${raw.slice(0, 2)}-${raw.slice(2, 5)}-${raw.slice(5)}`;
+    return `${raw.slice(0, 2)}-${raw.slice(2, 6)}-${raw.slice(6, 10)}`;
+  } else {
+    if (raw.length <= 3) return raw;
+    if (raw.length <= 7) return `${raw.slice(0, 3)}-${raw.slice(3)}`;
+    if (raw.length <= 10) return `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6)}`;
+    return `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
+  }
+}
+
+// 1-2. Korean Currency Formatter (단일 직관적 표기: 1억 2,345만 6,789원)
 function formatKoreanFullAmount(amount) {
   if (!amount || isNaN(amount) || amount <= 0) {
     return { formattedWon: '0원', shortKorean: '0원' };
@@ -64,7 +81,7 @@ function formatKoreanFullAmount(amount) {
     n = Math.floor(n / 10000);
     uIdx++;
   }
-  const shortKorean = (shortParts.length > 0 ? shortParts.join(' ') : '0') + ' 원';
+  const shortKorean = (shortParts.length > 0 ? shortParts.join(' ') : '0') + '원';
 
   return {
     formattedWon: `${num.toLocaleString('ko-KR')}원`,
@@ -466,7 +483,8 @@ function createCaseCardElement(caseItem, isSelected = false, showPath = false) {
 
   const caseNo = caseItem?.case_number || '-';
   const debtorName = caseItem?.debtor_name || '-';
-  const phone = caseItem?.phone || '010-0000-0000';
+  const rawPhone = caseItem?.phone || '010-0000-0000';
+  const phone = formatKoreanPhoneNumber(rawPhone);
   const court = caseItem?.court || '인천지방법원';
   const caseType = caseItem?.case_type === '법인파산' ? '법인' : '개인';
   const statusLabel = caseItem?.status || '신규접수';
@@ -488,7 +506,7 @@ function createCaseCardElement(caseItem, isSelected = false, showPath = false) {
       </div>
       <div class="case-detail-row">
         <span class="check-icon">✓</span>
-        <span>채무액 : <strong>${debtAmt.formattedWon}</strong> (${debtAmt.shortKorean})</span>
+        <span>채무액 : <strong>${debtAmt.shortKorean}</strong></span>
       </div>
     </div>
     <div class="case-card-footer">
@@ -815,22 +833,6 @@ function setupNewCaseModal() {
 
   // 1. Phone number auto-formatter (000-0000-0000)
   const phoneInput = document.getElementById('newCasePhone');
-  function formatKoreanPhoneNumber(value) {
-    if (!value) return '';
-    const raw = value.replace(/[^0-9]/g, '');
-    if (raw.startsWith('02')) {
-      if (raw.length <= 2) return raw;
-      if (raw.length <= 5) return `${raw.slice(0, 2)}-${raw.slice(2)}`;
-      if (raw.length <= 9) return `${raw.slice(0, 2)}-${raw.slice(2, 5)}-${raw.slice(5)}`;
-      return `${raw.slice(0, 2)}-${raw.slice(2, 6)}-${raw.slice(6, 10)}`;
-    } else {
-      if (raw.length <= 3) return raw;
-      if (raw.length <= 7) return `${raw.slice(0, 3)}-${raw.slice(3)}`;
-      if (raw.length <= 10) return `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6)}`;
-      return `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
-    }
-  }
-
   if (phoneInput && !phoneInput.dataset.bound) {
     phoneInput.dataset.bound = 'true';
     phoneInput.addEventListener('input', () => {
