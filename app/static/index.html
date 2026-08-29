@@ -35,105 +35,34 @@
           </p>
         </div>
 
-        <!-- Right Minimalist Classic Table Counter (Enlarged Cards with Direct Filter Linking) -->
-        <div class="hero-counter-table">
-          <div class="counter-table-row">
-            <div class="counter-table-col" id="kpiActiveCard" title="진행 사건을 사건 탐색기로 조회">
-              <span class="counter-table-label">진행 사건</span>
-              <span class="counter-table-num" id="kpiActiveCount">0</span>
-            </div>
-            <div class="counter-table-col" id="kpiInterviewCard" title="상담 필요 사건을 사건 탐색기로 조회">
-              <span class="counter-table-label">상담 필요</span>
-              <span class="counter-table-num" id="kpiInterviewCount">0</span>
-            </div>
-            <div class="counter-table-col" id="kpiDocsCard" title="서류 보정 사건을 사건 탐색기로 조회">
-              <span class="counter-table-label">서류 보정</span>
-              <span class="counter-table-num" id="kpiDocsCount">0</span>
-            </div>
-            <div class="counter-table-col highlight" id="kpiDeadlineCard" title="기일 임박 사건을 사건 탐색기로 조회">
-              <span class="counter-table-label">기일 임박</span>
-              <span class="counter-table-num text-urgent" id="kpiDeadlineCount">0</span>
-            </div>
-            <div class="counter-table-col" id="kpiReportCard" title="보고서 제출 완료 사건을 사건 탐색기로 조회">
-              <span class="counter-table-label">보고서 제출</span>
-              <span class="counter-table-num" id="kpiReportCount">0</span>
-            </div>
-            <div class="counter-table-col explorer-link-col" id="kpiExplorerCard" title="3x3 전체 사건 탐색기 열기">
-              <span class="counter-table-label">사건 탐색기</span>
-              <span class="counter-table-num explorer-icon">📁</span>
-            </div>
+        <!-- Independent Tour-Style Stat Cards (6 Standalone Cards) -->
+        <div class="hero-counter-grid">
+          <div class="kpi-stat-card" id="kpiActiveCard" title="진행 사건 목록 조회">
+            <span class="kpi-card-label">진행 사건</span>
+            <span class="kpi-card-num" id="kpiActiveCount">0</span>
+          </div>
+          <div class="kpi-stat-card" id="kpiInterviewCard" title="상담 필요 사건 목록 조회">
+            <span class="kpi-card-label">상담 필요</span>
+            <span class="kpi-card-num" id="kpiInterviewCount">0</span>
+          </div>
+          <div class="kpi-stat-card" id="kpiDocsCard" title="서류 보정 사건 목록 조회">
+            <span class="kpi-card-label">서류 보정</span>
+            <span class="kpi-card-num" id="kpiDocsCount">0</span>
+          </div>
+          <div class="kpi-stat-card highlight" id="kpiDeadlineCard" title="기일 임박 사건 목록 조회">
+            <span class="kpi-card-label">기일 임박</span>
+            <span class="kpi-card-num text-urgent" id="kpiDeadlineCount">0</span>
+          </div>
+          <div class="kpi-stat-card" id="kpiReportCard" title="보고서 제출 완료 사건 목록 조회">
+            <span class="kpi-card-label">보고서 제출</span>
+            <span class="kpi-card-num" id="kpiReportCount">0</span>
+          </div>
+          <div class="kpi-stat-card explorer-action-card" id="kpiExplorerCard" title="3x3 전체 사건 탐색기 열기">
+            <span class="kpi-card-label">사건 탐색기</span>
+            <span class="kpi-card-num explorer-icon">📁</span>
           </div>
         </div>
       </section>
-
-      <!-- Section 1: Upcoming Deadlines (Editorial Cards Grid) -->
-      <section class="editorial-section">
-        <div class="editorial-section-header">
-          <div class="section-title-group">
-            <span class="section-tag-bullet">■ 기일 임박</span>
-            <h2 class="section-serif-title">Upcoming Deadlines</h2>
-          </div>
-          <span class="section-records-count" id="dashUpcomingCountDisplay">0 RECORDS</span>
-        </div>
-
-        <div class="editorial-cards-grid" id="dashUpcomingMeetingsList">
-          <!-- Dynamic Editorial D-Day Cards -->
-        </div>
-      </section>
-
-      <!-- Section 2: 2-Column Editorial Work Queues (상담 필요 & 서류 보정) -->
-      <section class="editorial-split-section">
-        
-        <!-- Queue 1: Pending Interviews -->
-        <div class="editorial-queue-box">
-          <div class="editorial-section-header compact">
-            <div class="section-title-group">
-              <span class="section-tag-bullet amber">■ 상담 필요</span>
-              <h3 class="section-serif-title compact">Pending Interviews</h3>
-            </div>
-            <span class="section-records-count" id="badgeInterviewQueue">0 RECORDS</span>
-          </div>
-          <div class="editorial-queue-list" id="dashInterviewList">
-            <!-- Dynamic Interview Cards -->
-          </div>
-        </div>
-
-        <!-- Queue 2: Incomplete Docs -->
-        <div class="editorial-queue-box">
-          <div class="editorial-section-header compact">
-            <div class="section-title-group">
-              <span class="section-tag-bullet rose">■ 서류 미비</span>
-              <h3 class="section-serif-title compact">Document Checks</h3>
-            </div>
-            <span class="section-records-count" id="badgeDocsQueue">0 RECORDS</span>
-          </div>
-          <div class="editorial-queue-list" id="dashDocsList">
-            <!-- Dynamic Docs Cards -->
-          </div>
-        </div>
-
-      </section>
-
-      <!-- Bottom Action Banner: Open 3x3 Explorer -->
-      <div class="editorial-bottom-banner">
-        <button class="btn-editorial-explorer" id="dashOpenExplorerBtn">
-          <div class="banner-left-content">
-            <span class="banner-editorial-tag">DOCKET BROWSER / 3X3 GRID</span>
-            <h3 class="banner-editorial-title">3x3 전체 사건 탐색기 열기</h3>
-            <p class="banner-editorial-desc">연도 및 배정 월별 폴더 드릴다운, 6대 실무 상태 필터링 및 초성 정밀 검색</p>
-          </div>
-          <div class="banner-right-action">
-            <span>EXPLORE DOCKET</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-          </div>
-        </button>
-      </div>
-
-      <!-- Editorial Footer Note -->
-      <footer class="editorial-footer-note">
-        <span>BANKRUPTCY ADMIN SUITE / DESKTOP SECURE V1.0</span>
-        <span>ZERO-LEAK STANDALONE WORKSPACE · OFFLINE PROTECTED</span>
-      </footer>
 
     </main>
 

@@ -119,6 +119,32 @@ const STATUS_CONFIG = {
   '면책종결': { color: '#475569', bg: '#f1f5f9', label: '면책·종결' }
 };
 
+// 2-1. Direct Category Case Filter Helper
+function getDirectCategoryCases(catKey) {
+  const all = state.allCases || [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (catKey === 'ACTIVE') {
+    return all.filter(c => c && c.status !== '면책종결');
+  } else if (catKey === 'INTERVIEW') {
+    return all.filter(c => c && c.status !== '면책종결' && !c.interview_done);
+  } else if (catKey === 'DOCS') {
+    return all.filter(c => c && c.status !== '면책종결' && !c.docs_completed);
+  } else if (catKey === 'DEADLINE') {
+    return all.filter(c => {
+      if (!c || !c.meeting_date || c.status === '면책종결') return false;
+      const mDate = new Date(c.meeting_date);
+      mDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((mDate - today) / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 14;
+    });
+  } else if (catKey === 'REPORTS') {
+    return all.filter(c => c && (c.status === '면책종결' || c.report_submitted));
+  }
+  return all;
+}
+
 // 3. Application State
 const state = {
   activeView: 'dashboard', // 'dashboard' | 'workspace'
@@ -126,6 +152,7 @@ const state = {
   selectedCase: null,
   navPath: [], // [] = Root/Years, ['2026년'] = Months, ['2026년', '02월_배정사건'] = Cases
   activeFilter: 'ALL',
+  directCategory: null, // 'ACTIVE' | 'INTERVIEW' | 'DOCS' | 'DEADLINE' | 'REPORTS' | null
   searchQuery: '',
   selectedIndex: 0,
   modalVisibleItems: [],
@@ -178,11 +205,7 @@ function processLoadedCases(data, preserveSelection = true) {
     } else {
       const curNo = state.selectedCase?.case_number;
       const current = curNo ? state.allCases.find(c => c?.case_number === curNo) : null;
-      if (current) {
-        selectCase(current, false);
-      } else {
-        selectCase(state.allCases[0], false);
-      }
+      if (current) selectCase(current, false);
     }
   }
   
@@ -226,35 +249,14 @@ function renderDashboard() {
   const dateEl = document.getElementById('dashTodayDateDisplay');
   if (dateEl) dateEl.textContent = dateStr;
 
-  // 2. Metrics Calculation
-  const all = state.allCases;
-  const activeCases = all.filter(c => c && c.status !== '면책종결');
-  
-  // Pending Interviews: interview_done === false
-  const pendingInterviews = activeCases.filter(c => !c.interview_done);
-  
-  // Incomplete Docs: docs_completed === false
-  const incompleteDocs = activeCases.filter(c => !c.docs_completed);
-  
-  // Upcoming Deadlines (D-Day based on meeting_date)
-  today.setHours(0, 0, 0, 0);
-  const upcomingMeetings = activeCases
-    .filter(c => c && c.meeting_date)
-    .map(c => {
-      const mDate = new Date(c.meeting_date);
-      mDate.setHours(0, 0, 0, 0);
-      const diffDays = Math.ceil((mDate - today) / (1000 * 60 * 60 * 24));
-      return { ...c, diffDays };
-    })
-    .sort((a, b) => a.diffDays - b.diffDays);
+  // 2. Metrics Calculation via Helper
+  const activeCases = getDirectCategoryCases('ACTIVE');
+  const pendingInterviews = getDirectCategoryCases('INTERVIEW');
+  const incompleteDocs = getDirectCategoryCases('DOCS');
+  const deadlineCases = getDirectCategoryCases('DEADLINE');
+  const reportCases = getDirectCategoryCases('REPORTS');
 
-  const urgentCount = upcomingMeetings.filter(c => c.diffDays >= 0 && c.diffDays <= 14).length;
-  
-  // Final Reports
-  const reportsSubmitted = all.filter(c => c && c.report_submitted).length;
-  const reportsPending = activeCases.filter(c => c && !c.report_submitted && ['통장분석중', '채권자집회대기', '환가배당진행'].includes(c.status)).length;
-
-  // 3. Update 5 KPI Cards
+  // 3. Update 5 KPI Card Numbers
   const elActive = document.getElementById('kpiActiveCount');
   if (elActive) elActive.textContent = activeCases.length;
 
@@ -265,152 +267,10 @@ function renderDashboard() {
   if (elDocs) elDocs.textContent = incompleteDocs.length;
 
   const elDeadline = document.getElementById('kpiDeadlineCount');
-  if (elDeadline) elDeadline.textContent = urgentCount;
-  const elDeadlineSub = document.getElementById('kpiDeadlineSub');
-  // 4. Render Upcoming Meetings List (Editorial 3-Column Cards)
-  const meetingsContainer = document.getElementById('dashUpcomingMeetingsList');
-  const upcomingCountDisplay = document.getElementById('dashUpcomingCountDisplay');
-  if (upcomingCountDisplay) upcomingCountDisplay.textContent = `${upcomingMeetings.length} RECORDS`;
+  if (elDeadline) elDeadline.textContent = deadlineCases.length;
 
-  if (meetingsContainer) {
-    if (upcomingMeetings.length === 0) {
-      meetingsContainer.innerHTML = '<div class="empty-editorial-hint">현재 예정된 채권자집회 기일이 없습니다.</div>';
-    } else {
-      meetingsContainer.innerHTML = '';
-      upcomingMeetings.slice(0, 6).forEach((item, idx) => {
-        const card = document.createElement('div');
-        card.className = 'editorial-card';
-
-        let ddayClass = 'normal';
-        let ddayBadgeText = `D-${item.diffDays}`;
-        if (item.diffDays < 0) {
-          ddayClass = 'urgent';
-          ddayBadgeText = `D+${Math.abs(item.diffDays)} (기일경과)`;
-        } else if (item.diffDays <= 7) {
-          ddayClass = 'urgent';
-          ddayBadgeText = `D-${item.diffDays} (긴급)`;
-        } else if (item.diffDays <= 14) {
-          ddayClass = 'warn';
-          ddayBadgeText = `D-${item.diffDays}`;
-        }
-
-        const debtFormatted = formatKoreanDebt(item.total_debt);
-        const repStatus = item.report_submitted ? '✔ 보고서 제출완료' : '📝 보고서 작성중';
-
-        card.innerHTML = `
-          <div class="card-visual-bar ${ddayClass === 'urgent' ? 'urgent' : ''}">
-            <span>DOSSIER / ${String(idx + 1).padStart(2, '0')}</span>
-            <span>${item.case_type || '개인파산'}</span>
-          </div>
-          <div class="card-body">
-            <span class="card-status-tag">■ ${item.status || '기일임박'}</span>
-            <h3 class="card-title">${item.case_number || '-'} ${item.debtor_name || '-'}</h3>
-            <div class="card-meta-list">
-              <div class="meta-row"><span>📍</span><span>${item.court || '서울회생법원'}</span></div>
-              <div class="meta-row"><span>🗓️</span><span class="font-mono">${item.meeting_date} (제1회 집회)</span></div>
-              <div class="meta-row"><span>💰</span><span>채무액 ${debtFormatted}</span></div>
-              <div class="meta-row" style="font-size:12px; color:#6b776f; margin-top:2px;"><span>📑</span><span>${repStatus}</span></div>
-            </div>
-            <div class="card-footer">
-              <span class="dday-pill ${ddayClass}">${ddayBadgeText}</span>
-              <span class="card-link-btn">상세 보기 ›</span>
-            </div>
-          </div>
-        `;
-
-        card.addEventListener('click', () => {
-          selectCase(item, true); // Select and switch to workspace view!
-        });
-
-        meetingsContainer.appendChild(card);
-      });
-    }
-  }
-
-  // 5. Render Pending Interviews Queue (Editorial List)
-  const interviewContainer = document.getElementById('dashInterviewList');
-  const badgeInterview = document.getElementById('badgeInterviewQueue');
-  if (badgeInterview) badgeInterview.textContent = `${pendingInterviews.length} RECORDS`;
-
-  if (interviewContainer) {
-    if (pendingInterviews.length === 0) {
-      interviewContainer.innerHTML = '<div class="empty-editorial-hint">✔ 모든 채무자 상담(면담)이 완료되었습니다.</div>';
-    } else {
-      interviewContainer.innerHTML = '';
-      pendingInterviews.slice(0, 5).forEach(item => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'editorial-queue-item';
-        
-        const phone = formatKoreanPhoneNumber(item.phone || '010-0000-0000');
-        itemEl.innerHTML = `
-          <div class="queue-left-block">
-            <div class="queue-title-row">
-              <span class="queue-case-no">${item.case_number || '-'}</span>
-              <span class="queue-debtor">${item.debtor_name || '-'}</span>
-            </div>
-            <span class="queue-subtext">📞 ${phone} · ${item.court || '법원'}</span>
-          </div>
-          <button class="btn-editorial-action" title="상담 완료로 변경">✔ 상담 완료</button>
-        `;
-
-        const actBtn = itemEl.querySelector('.btn-editorial-action');
-        if (actBtn) {
-          actBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            updateCaseFlag(item, { interview_done: true }, `[${item.debtor_name}] 상담 완료 처리되었습니다.`);
-          });
-        }
-
-        itemEl.addEventListener('click', () => {
-          selectCase(item, true);
-        });
-
-        interviewContainer.appendChild(itemEl);
-      });
-    }
-  }
-
-  // 6. Render Incomplete Docs Queue (Editorial List)
-  const docsContainer = document.getElementById('dashDocsList');
-  const badgeDocs = document.getElementById('badgeDocsQueue');
-  if (badgeDocs) badgeDocs.textContent = `${incompleteDocs.length} RECORDS`;
-
-  if (docsContainer) {
-    if (incompleteDocs.length === 0) {
-      docsContainer.innerHTML = '<div class="empty-editorial-hint">✔ 모든 사건의 필수 서류가 완비되었습니다.</div>';
-    } else {
-      docsContainer.innerHTML = '';
-      incompleteDocs.slice(0, 5).forEach(item => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'editorial-queue-item';
-        
-        itemEl.innerHTML = `
-          <div class="queue-left-block">
-            <div class="queue-title-row">
-              <span class="queue-case-no">${item.case_number || '-'}</span>
-              <span class="queue-debtor">${item.debtor_name || '-'}</span>
-            </div>
-            <span class="queue-subtext">📄 ${item.memo ? item.memo.substring(0, 24) + '...' : '1차 서류 미비 검토 필요'}</span>
-          </div>
-          <button class="btn-editorial-action" title="서류 완비로 변경">✔ 서류 완비</button>
-        `;
-
-        const actBtn = itemEl.querySelector('.btn-editorial-action');
-        if (actBtn) {
-          actBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            updateCaseFlag(item, { docs_completed: true }, `[${item.debtor_name}] 서류 완비 처리되었습니다.`);
-          });
-        }
-
-        itemEl.addEventListener('click', () => {
-          selectCase(item, true);
-        });
-
-        docsContainer.appendChild(itemEl);
-      });
-    }
-  }
+  const elReport = document.getElementById('kpiReportCount');
+  if (elReport) elReport.textContent = reportCases.length;
 }
 
 // Update Case Status Flags (interview_done, docs_completed, report_submitted)
@@ -587,6 +447,8 @@ function updateStatusFilterCounts() {
         matchSearch(c.memo, q)
       )
     );
+  } else if (state.directCategory) {
+    scopeCases = getDirectCategoryCases(state.directCategory);
   } else if (state.navPath.length === 2) {
     const [selYear, selMonth] = state.navPath;
     scopeCases = state.allCases.filter(c => c && c.year === selYear && c.month_category === selMonth);
@@ -636,6 +498,11 @@ function renderExplorer() {
     return;
   }
 
+  if (state.directCategory) {
+    renderDirectCategoryCaseCards(container);
+    return;
+  }
+
   const level = state.navPath.length;
   if (level === 0) {
     renderYearCards(container);
@@ -653,11 +520,13 @@ function renderBreadcrumbs() {
 
   list.innerHTML = '';
   const rootCrumb = document.createElement('span');
-  rootCrumb.className = 'nav-crumb' + (state.navPath.length === 0 && !state.searchQuery ? ' active' : '');
+  rootCrumb.className = 'nav-crumb' + (state.navPath.length === 0 && !state.searchQuery && !state.directCategory ? ' active' : '');
   rootCrumb.textContent = '📁 사건저장소';
   rootCrumb.addEventListener('click', () => {
     state.navPath = [];
     state.searchQuery = '';
+    state.directCategory = null;
+    state.activeFilter = 'ALL';
     const input = document.getElementById('explorerSearchInput');
     if (input) input.value = '';
     state.selectedIndex = 0;
@@ -675,6 +544,29 @@ function renderBreadcrumbs() {
     searchCrumb.className = 'nav-crumb active';
     searchCrumb.textContent = `🔍 검색: "${state.searchQuery}"`;
     list.appendChild(searchCrumb);
+
+    if (btnUp) btnUp.style.display = 'inline-flex';
+    return;
+  }
+
+  if (state.directCategory) {
+    const catTitles = {
+      ACTIVE: '진행 사건',
+      INTERVIEW: '상담 필요 사건',
+      DOCS: '서류 보정 사건',
+      DEADLINE: '기일 임박 사건 (D-14)',
+      REPORTS: '보고서 제출 완료 사건'
+    };
+    const arrow = document.createElement('span');
+    arrow.className = 'nav-arrow';
+    arrow.textContent = '›';
+    list.appendChild(arrow);
+
+    const catCrumb = document.createElement('span');
+    catCrumb.className = 'nav-crumb active';
+    const matchedCases = getDirectCategoryCases(state.directCategory);
+    catCrumb.textContent = `📌 ${catTitles[state.directCategory] || '사건 목록'} (${matchedCases.length}건)`;
+    list.appendChild(catCrumb);
 
     if (btnUp) btnUp.style.display = 'inline-flex';
     return;
@@ -702,6 +594,34 @@ function renderBreadcrumbs() {
   if (btnUp) {
     btnUp.style.display = state.navPath.length > 0 ? 'inline-flex' : 'none';
   }
+}
+
+// Render flat case cards directly when clicked from KPI cards (No year/month folder drilldown)
+function renderDirectCategoryCaseCards(container) {
+  let cases = getDirectCategoryCases(state.directCategory);
+
+  if (state.activeFilter && state.activeFilter !== 'ALL') {
+    cases = cases.filter(c => matchStatus(c.status, state.activeFilter));
+  }
+
+  if (cases.length === 0) {
+    container.innerHTML = '<div style="padding:40px; text-align:center; color:#99f6e4; font-size:16px;">해당 조건에 부합하는 사건이 없습니다.</div>';
+    return;
+  }
+
+  // Sort descending by latest case number
+  cases.sort((a, b) => (b.case_number || '').localeCompare(a.case_number || ''));
+
+  const grid = document.createElement('div');
+  grid.className = 'mockup-case-grid-3col';
+
+  cases.forEach((caseItem) => {
+    const card = createCaseCardElement(caseItem, false);
+    state.modalVisibleItems.push(card);
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
 }
 
 function renderYearCards(container) {
@@ -959,19 +879,20 @@ function initEventListeners() {
     headerCaseBadge.addEventListener('click', () => switchView('workspace'));
   }
 
-  // Helper to open explorer with specific pipeline filter applied
-  function openExplorerWithFilter(filterKey) {
-    state.activeFilter = filterKey || 'ALL';
+  // Helper to open explorer with direct category case list (flat, no year/month folders)
+  function openExplorerWithDirectCategory(catKey) {
+    state.directCategory = catKey;
+    state.activeFilter = 'ALL';
     state.searchQuery = '';
     const searchInput = document.getElementById('explorerSearchInput');
     if (searchInput) searchInput.value = '';
     const clearBtn = document.getElementById('modalClearSearchBtn');
     if (clearBtn) clearBtn.style.display = 'none';
 
-    // Update status pills in explorer modal
+    // Update status pills in explorer modal to ALL
     const pillBtns = document.querySelectorAll('.mockup-pill-btn');
     pillBtns.forEach(btn => {
-      if (btn.getAttribute('data-status') === state.activeFilter) {
+      if (btn.getAttribute('data-status') === 'ALL') {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
@@ -983,31 +904,49 @@ function initEventListeners() {
     openExplorerModal();
   }
 
-  // Modal Triggers: Hero Counter Cards (Direct Filter Integration)
+  // Modal Triggers: Standalone Stat Cards (Direct Flat Case List Query)
   const kpiActiveCard = document.getElementById('kpiActiveCard');
-  if (kpiActiveCard) kpiActiveCard.addEventListener('click', () => openExplorerWithFilter('ALL'));
+  if (kpiActiveCard) kpiActiveCard.addEventListener('click', () => openExplorerWithDirectCategory('ACTIVE'));
 
   const kpiInterviewCard = document.getElementById('kpiInterviewCard');
-  if (kpiInterviewCard) kpiInterviewCard.addEventListener('click', () => openExplorerWithFilter('NEW'));
+  if (kpiInterviewCard) kpiInterviewCard.addEventListener('click', () => openExplorerWithDirectCategory('INTERVIEW'));
 
   const kpiDocsCard = document.getElementById('kpiDocsCard');
-  if (kpiDocsCard) kpiDocsCard.addEventListener('click', () => openExplorerWithFilter('DOC_CORRECTION'));
+  if (kpiDocsCard) kpiDocsCard.addEventListener('click', () => openExplorerWithDirectCategory('DOCS'));
 
   const kpiDeadlineCard = document.getElementById('kpiDeadlineCard');
-  if (kpiDeadlineCard) kpiDeadlineCard.addEventListener('click', () => openExplorerWithFilter('MEETING'));
+  if (kpiDeadlineCard) kpiDeadlineCard.addEventListener('click', () => openExplorerWithDirectCategory('DEADLINE'));
 
   const kpiReportCard = document.getElementById('kpiReportCard');
-  if (kpiReportCard) kpiReportCard.addEventListener('click', () => openExplorerWithFilter('CLOSED'));
+  if (kpiReportCard) kpiReportCard.addEventListener('click', () => openExplorerWithDirectCategory('REPORTS'));
 
   const kpiExplorerCard = document.getElementById('kpiExplorerCard');
-  if (kpiExplorerCard) kpiExplorerCard.addEventListener('click', () => openExplorerModal());
+  if (kpiExplorerCard) kpiExplorerCard.addEventListener('click', () => {
+    state.directCategory = null;
+    state.navPath = [];
+    state.activeFilter = 'ALL';
+    state.selectedIndex = 0;
+    openExplorerModal();
+  });
 
   // Modal Triggers: 3x3 Explorer Modal
   const openExplorerBtn = document.getElementById('openExplorerBtn');
-  if (openExplorerBtn) openExplorerBtn.addEventListener('click', () => openExplorerWithFilter('ALL'));
+  if (openExplorerBtn) openExplorerBtn.addEventListener('click', () => {
+    state.directCategory = null;
+    state.navPath = [];
+    state.activeFilter = 'ALL';
+    state.selectedIndex = 0;
+    openExplorerModal();
+  });
 
   const dashOpenExplorerBtn = document.getElementById('dashOpenExplorerBtn');
-  if (dashOpenExplorerBtn) dashOpenExplorerBtn.addEventListener('click', () => openExplorerWithFilter('ALL'));
+  if (dashOpenExplorerBtn) dashOpenExplorerBtn.addEventListener('click', () => {
+    state.directCategory = null;
+    state.navPath = [];
+    state.activeFilter = 'ALL';
+    state.selectedIndex = 0;
+    openExplorerModal();
+  });
 
   const closeExplorerBtn = document.getElementById('closeExplorerBtn');
   if (closeExplorerBtn) closeExplorerBtn.addEventListener('click', closeExplorerModal);
@@ -1057,6 +996,9 @@ function initEventListeners() {
         state.searchQuery = '';
         if (searchInput) searchInput.value = '';
         if (clearBtn) clearBtn.style.display = 'none';
+      } else if (state.directCategory) {
+        state.directCategory = null;
+        state.navPath = [];
       } else if (state.navPath.length > 0) {
         state.navPath.pop();
       }
