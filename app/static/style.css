@@ -1649,11 +1649,11 @@ kbd {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 190px;
-  max-height: 250px;
+  height: 236px;
+  min-height: 236px;
+  max-height: 236px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  container-type: inline-size;
 }
 
 .weekday-col:hover {
@@ -1713,12 +1713,14 @@ kbd {
 }
 
 .weekday-col-header {
-  padding: 8px 10px;
+  height: 38px;
+  padding: 0 10px;
   border-bottom: 1px solid #e8e4dc;
   background: #fbf9f4;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .col-header-left {
@@ -1751,6 +1753,7 @@ kbd {
   border-radius: 8px;
 }
 
+/* Day Column Body: Fits exactly 5 cards, uses clean scrollbar when >5 cards */
 .weekday-col-body {
   padding: 6px;
   display: flex;
@@ -1758,32 +1761,53 @@ kbd {
   gap: 5px;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.weekday-col-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.weekday-col-body::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.weekday-col-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.weekday-col-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .empty-cal-day {
   text-align: center;
   color: #a3aca5;
   font-size: 13.5px;
-  padding: 24px 6px;
+  padding: 45px 6px;
   font-style: italic;
 }
 
-/* Compact Drag & Drop Event Chips in Day Column */
+/* Compact Drag & Drop Event Chips in Day Column (Box size locked, text auto scales) */
 .cal-event-chip {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 7px;
+  padding: 4px 6px;
+  height: 31px;
+  min-height: 31px;
+  max-height: 31px;
   background: #ffffff;
   border: 1px solid #e8e4dc;
   border-radius: 4px;
   cursor: grab;
   transition: all 0.15s;
-  font-size: 14.5px;
-  font-weight: 400;
   user-select: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
   overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .cal-event-chip:active {
@@ -1803,13 +1827,14 @@ kbd {
   box-shadow: 0 2px 6px rgba(30, 51, 34, 0.06);
 }
 
-/* State Badge with Exact Uniform Width (No icons, perfectly aligned) */
+/* State Badge: Locked 44px Fixed Box (Never shrinks, exact Image 2 style) */
 .cal-event-badge {
   display: inline-flex;
   justify-content: center;
   align-items: center;
   width: 44px;
   min-width: 44px;
+  max-width: 44px;
   height: 22px;
   text-align: center;
   font-size: 12.5px;
@@ -1844,87 +1869,45 @@ kbd {
   border: 1px solid #ddd6fe;
 }
 
+/* Case No: Clean, narrow letter-spacing, text ellipsis if very tight */
 .cal-event-case-no {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 400;
   color: #1e3322;
   white-space: nowrap;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 1;
+  min-width: 0;
 }
 
+/* Debtor Name: Clean font */
 .cal-event-debtor {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   color: #1a201c;
   white-space: nowrap;
   letter-spacing: -0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 /* Right Consultation Time Badge (상담 시간 전용) */
 .cal-event-time {
-  font-size: 12px;
+  font-size: 11px;
   color: #0369a1;
   background: #e0f2fe;
   border: 1px solid #bae6fd;
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-radius: 3px;
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: auto;
   font-weight: 400;
   letter-spacing: -0.02em;
-}
-
-/* Adaptive Container Queries: 80% and 60% font reduction + letter-spacing tightening */
-@container (max-width: 220px) {
-  .cal-event-chip {
-    gap: 4px;
-    padding: 4px 5px;
-  }
-  .cal-event-badge {
-    width: 38px;
-    min-width: 38px;
-    font-size: 11.5px;
-    height: 20px;
-  }
-  .cal-event-case-no {
-    font-size: 11px; /* ~80% reduction */
-    letter-spacing: -0.05em;
-  }
-  .cal-event-debtor {
-    font-size: 11.5px;
-  }
-  .cal-event-time {
-    font-size: 10.5px;
-    padding: 1px 3px;
-  }
-}
-
-@container (max-width: 170px) {
-  .cal-event-badge {
-    width: 32px;
-    min-width: 32px;
-    font-size: 10.5px;
-    height: 18px;
-  }
-  .cal-event-case-no {
-    font-size: 9px; /* ~60% reduction */
-    letter-spacing: -0.08em;
-    max-width: 48px;
-  }
-  .cal-event-debtor {
-    font-size: 10.5px;
-  }
-  .cal-event-time {
-    font-size: 9.5px;
-    padding: 0 2px;
-  }
 }
 
 /* ==========================================================================
