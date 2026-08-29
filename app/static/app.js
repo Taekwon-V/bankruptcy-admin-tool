@@ -267,24 +267,20 @@ function renderDashboard() {
   const elDeadline = document.getElementById('kpiDeadlineCount');
   if (elDeadline) elDeadline.textContent = urgentCount;
   const elDeadlineSub = document.getElementById('kpiDeadlineSub');
-  if (elDeadlineSub) elDeadlineSub.textContent = `D-14일 이내: ${urgentCount}건 / 전체: ${upcomingMeetings.length}건`;
-
-  const elReport = document.getElementById('kpiReportCount');
-  if (elReport) elReport.textContent = reportsSubmitted;
-  const elReportSub = document.getElementById('kpiReportSub');
-  if (elReportSub) elReportSub.textContent = `작성대기 ${reportsPending}건 · 제출완료 ${reportsSubmitted}건`;
-
-  // 4. Render Upcoming Meetings List (D-Day)
+  // 4. Render Upcoming Meetings List (Editorial 3-Column Cards)
   const meetingsContainer = document.getElementById('dashUpcomingMeetingsList');
+  const upcomingCountDisplay = document.getElementById('dashUpcomingCountDisplay');
+  if (upcomingCountDisplay) upcomingCountDisplay.textContent = `${upcomingMeetings.length} RECORDS`;
+
   if (meetingsContainer) {
     if (upcomingMeetings.length === 0) {
-      meetingsContainer.innerHTML = '<div class="empty-dash-list">현재 예정된 채권자집회 기일이 없습니다.</div>';
+      meetingsContainer.innerHTML = '<div class="empty-editorial-hint">현재 예정된 채권자집회 기일이 없습니다.</div>';
     } else {
       meetingsContainer.innerHTML = '';
-      upcomingMeetings.slice(0, 6).forEach(item => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'dash-dday-item';
-        
+      upcomingMeetings.slice(0, 6).forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'editorial-card';
+
         let ddayClass = 'normal';
         let ddayBadgeText = `D-${item.diffDays}`;
         if (item.diffDays < 0) {
@@ -298,61 +294,66 @@ function renderDashboard() {
           ddayBadgeText = `D-${item.diffDays}`;
         }
 
-        const cfg = STATUS_CONFIG[item.status] || { color: '#0284c7', bg: '#e0f2fe', label: item.status };
-        const repStatus = item.report_submitted ? '✅ 보고서제출' : '📝 보고서미제출';
+        const debtFormatted = formatKoreanDebt(item.total_debt);
+        const repStatus = item.report_submitted ? '✔ 보고서 제출완료' : '📝 보고서 작성중';
 
-        itemEl.innerHTML = `
-          <div class="dday-left">
-            <span class="dday-badge ${ddayClass}">${ddayBadgeText}</span>
-            <div class="dday-case-info">
-              <span class="dday-case-no">${item.case_number || '-'}</span>
-              <span class="dday-debtor">${item.debtor_name || '-'}</span>
-              <span class="dday-court">| ${item.court || '법원'} (${repStatus})</span>
-            </div>
+        card.innerHTML = `
+          <div class="card-visual-bar ${ddayClass === 'urgent' ? 'urgent' : ''}">
+            <span>DOSSIER / ${String(idx + 1).padStart(2, '0')}</span>
+            <span>${item.case_type || '개인파산'}</span>
           </div>
-          <div class="dday-right">
-            <span class="dday-date-str">🗓️ ${item.meeting_date}</span>
-            <span class="dday-status-pill" style="background:${cfg.bg}; color:${cfg.color};">${cfg.label}</span>
+          <div class="card-body">
+            <span class="card-status-tag">■ ${item.status || '기일임박'}</span>
+            <h3 class="card-title">${item.case_number || '-'} ${item.debtor_name || '-'}</h3>
+            <div class="card-meta-list">
+              <div class="meta-row"><span>📍</span><span>${item.court || '서울회생법원'}</span></div>
+              <div class="meta-row"><span>🗓️</span><span class="font-mono">${item.meeting_date} (제1회 집회)</span></div>
+              <div class="meta-row"><span>💰</span><span>채무액 ${debtFormatted}</span></div>
+              <div class="meta-row" style="font-size:12px; color:#6b776f; margin-top:2px;"><span>📑</span><span>${repStatus}</span></div>
+            </div>
+            <div class="card-footer">
+              <span class="dday-pill ${ddayClass}">${ddayBadgeText}</span>
+              <span class="card-link-btn">상세 보기 ›</span>
+            </div>
           </div>
         `;
 
-        itemEl.addEventListener('click', () => {
+        card.addEventListener('click', () => {
           selectCase(item, true); // Select and switch to workspace view!
         });
 
-        meetingsContainer.appendChild(itemEl);
+        meetingsContainer.appendChild(card);
       });
     }
   }
 
-  // 5. Render Pending Interviews Queue
+  // 5. Render Pending Interviews Queue (Editorial List)
   const interviewContainer = document.getElementById('dashInterviewList');
   const badgeInterview = document.getElementById('badgeInterviewQueue');
-  if (badgeInterview) badgeInterview.textContent = `${pendingInterviews.length}건`;
+  if (badgeInterview) badgeInterview.textContent = `${pendingInterviews.length} RECORDS`;
 
   if (interviewContainer) {
     if (pendingInterviews.length === 0) {
-      interviewContainer.innerHTML = '<div class="empty-dash-list">✅ 모든 채무자 상담(면담)이 완료되었습니다.</div>';
+      interviewContainer.innerHTML = '<div class="empty-editorial-hint">✔ 모든 채무자 상담(면담)이 완료되었습니다.</div>';
     } else {
       interviewContainer.innerHTML = '';
       pendingInterviews.slice(0, 5).forEach(item => {
         const itemEl = document.createElement('div');
-        itemEl.className = 'dash-queue-item';
+        itemEl.className = 'editorial-queue-item';
         
         const phone = formatKoreanPhoneNumber(item.phone || '010-0000-0000');
         itemEl.innerHTML = `
-          <div class="queue-left">
+          <div class="queue-left-block">
             <div class="queue-title-row">
               <span class="queue-case-no">${item.case_number || '-'}</span>
               <span class="queue-debtor">${item.debtor_name || '-'}</span>
             </div>
-            <span class="queue-phone">📞 ${phone}</span>
+            <span class="queue-subtext">📞 ${phone} · ${item.court || '법원'}</span>
           </div>
-          <button class="btn-queue-action" title="상담 완료로 변경">✔ 상담 완료</button>
+          <button class="btn-editorial-action" title="상담 완료로 변경">✔ 상담 완료</button>
         `;
 
-        // Action button: toggle interview_done
-        const actBtn = itemEl.querySelector('.btn-queue-action');
+        const actBtn = itemEl.querySelector('.btn-editorial-action');
         if (actBtn) {
           actBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -369,32 +370,32 @@ function renderDashboard() {
     }
   }
 
-  // 6. Render Incomplete Docs Queue
+  // 6. Render Incomplete Docs Queue (Editorial List)
   const docsContainer = document.getElementById('dashDocsList');
   const badgeDocs = document.getElementById('badgeDocsQueue');
-  if (badgeDocs) badgeDocs.textContent = `${incompleteDocs.length}건`;
+  if (badgeDocs) badgeDocs.textContent = `${incompleteDocs.length} RECORDS`;
 
   if (docsContainer) {
     if (incompleteDocs.length === 0) {
-      docsContainer.innerHTML = '<div class="empty-dash-list">✅ 모든 사건의 필수 서류가 완비되었습니다.</div>';
+      docsContainer.innerHTML = '<div class="empty-editorial-hint">✔ 모든 사건의 필수 서류가 완비되었습니다.</div>';
     } else {
       docsContainer.innerHTML = '';
       incompleteDocs.slice(0, 5).forEach(item => {
         const itemEl = document.createElement('div');
-        itemEl.className = 'dash-queue-item';
+        itemEl.className = 'editorial-queue-item';
         
         itemEl.innerHTML = `
-          <div class="queue-left">
+          <div class="queue-left-block">
             <div class="queue-title-row">
               <span class="queue-case-no">${item.case_number || '-'}</span>
               <span class="queue-debtor">${item.debtor_name || '-'}</span>
             </div>
-            <span class="queue-phone">📄 ${item.memo ? item.memo.substring(0, 24) + '...' : '1차 서류 미비 검토 필요'}</span>
+            <span class="queue-subtext">📄 ${item.memo ? item.memo.substring(0, 24) + '...' : '1차 서류 미비 검토 필요'}</span>
           </div>
-          <button class="btn-queue-action" title="서류 완비로 변경">✔ 서류 완비</button>
+          <button class="btn-editorial-action" title="서류 완비로 변경">✔ 서류 완비</button>
         `;
 
-        const actBtn = itemEl.querySelector('.btn-queue-action');
+        const actBtn = itemEl.querySelector('.btn-editorial-action');
         if (actBtn) {
           actBtn.addEventListener('click', (e) => {
             e.stopPropagation();

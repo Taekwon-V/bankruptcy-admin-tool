@@ -3,37 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>파산관제 스마트 매니저</title>
+  <title>파산관제 스마트 매니저 | Bankruptcy Admin Suite</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Pretendard:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-container" id="appContainer">
 
-    <!-- 1. Top Minimal Header Bar (54px) -->
+    <!-- 1. Top Editorial Dark Olive Header Bar (Pack to Go Inspiration) -->
     <header class="top-header">
       <div class="header-left">
-        <!-- Navigation to Dashboard Button -->
-        <button class="btn-nav-tab active" id="navDashboardBtn" title="메인 종합 상황판">
-          <span>📊 종합 상황판</span>
-        </button>
-
-        <!-- Floating Explorer Button -->
-        <button class="btn-explorer" id="openExplorerBtn" title="3x3 사건 탐색기 열기 (Ctrl+K)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          <span>사건 탐색기</span>
-        </button>
+        <!-- Logo Branding -->
+        <div class="editorial-brand" id="navDashboardBtn" title="메인 종합 상황판으로 이동">
+          <span class="brand-title">Bankruptcy Admin</span>
+          <span class="brand-sub">LOCAL / SECURE / INTEGRITY</span>
+        </div>
 
         <div class="header-divider"></div>
+
+        <!-- Floating Explorer Trigger -->
+        <button class="btn-explorer" id="openExplorerBtn" title="3x3 사건 탐색기 열기 (Ctrl+K)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>사건 탐색기</span>
+          <kbd class="kbd-badge">Ctrl+K</kbd>
+        </button>
 
         <!-- Current Active Case Indicator (Workspace Switch) -->
         <div class="current-case-indicator" id="headerCaseBadge" title="클릭하여 현재 선택된 사건 작업공간 열기">
           <span class="type-pill" id="headerCaseType">개인</span>
-          <span class="case-no-display" id="headerCaseNo">2026하면0201</span>
-          <span class="debtor-display" id="headerDebtorName">이지은</span>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+          <span class="case-no-display" id="headerCaseNo">2026하면0801</span>
+          <span class="debtor-display" id="headerDebtorName">김인철</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
         </div>
       </div>
 
@@ -46,140 +48,136 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           <span>폴더 열기</span>
         </button>
-        <button class="btn-icon-ghost" id="fitHalfScreenBtn" title="반 화면 고정 모드 (너비 960px / 100% 토글)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/></svg>
-        </button>
+        <div class="user-status-pill">
+          <span class="status-avatar">⚖️</span>
+          <span class="status-name">관제인 집무실</span>
+          <span class="status-mode">LOCAL SECURE</span>
+        </div>
       </div>
     </header>
 
-    <!-- 2. 🔥 MAIN DASHBOARD VIEW (Phase 2 메인 상황판) 🔥 -->
+    <!-- 2. 🔥 MAIN EDITORIAL DASHBOARD VIEW (Phase 2 메인 상황판) 🔥 -->
     <main class="dashboard-view" id="dashboardView">
 
-      <!-- Hero Welcome Title Row -->
-      <div class="dash-hero-row">
-        <div>
-          <h1 class="dash-main-title">파산관제 종합 상황판</h1>
-          <p class="dash-subtitle">오늘 우선 처리해야 할 주요 기일 및 상담·서류 보정 현황을 점검하세요.</p>
-        </div>
-        <div class="dash-today-date" id="dashTodayDateDisplay">2026년 08월 29일 (토)</div>
+      <!-- Editorial Index Sub-header -->
+      <div class="editorial-sub-bar">
+        <span class="sub-bar-left">CASE INDEX & ACTIVE DOCKET</span>
+        <span class="sub-bar-right">FIELD NOTES & LEGAL ADMINISTRATION IN PROGRESS</span>
       </div>
 
-      <!-- 5 Top KPI Cards Grid -->
-      <div class="kpi-grid-5">
-        
-        <!-- 1. Active Total Cases -->
-        <div class="kpi-card kpi-teal" id="kpiActiveCard">
-          <div class="kpi-top">
-            <span class="kpi-label">진행 중 사건</span>
-            <span class="kpi-icon-badge">📊</span>
-          </div>
-          <div class="kpi-val"><span id="kpiActiveCount">0</span><span class="kpi-unit">건</span></div>
-          <div class="kpi-sub">면책·종결 제외 활성 사건</div>
+      <!-- Hero Calligraphy / Typography Section -->
+      <section class="editorial-hero-section">
+        <div class="hero-calligraphy-box">
+          <span class="hero-category-tag">■ ACTIVE WORKLOAD</span>
+          <h1 class="hero-script-title">
+            오늘의 관제 사건을,<br>
+            <span class="script-accent">더 선명하고 공정하게.</span>
+          </h1>
+          <p class="hero-editorial-desc">
+            법원 파산관제 업무의 신속성과 무결성을 위한 100% 로컬 오프라인 사건 종합 상황판
+          </p>
         </div>
 
-        <!-- 2. Pending Interviews -->
-        <div class="kpi-card kpi-amber" id="kpiInterviewCard">
-          <div class="kpi-top">
-            <span class="kpi-label">상담 필요</span>
-            <span class="kpi-icon-badge">📞</span>
+        <!-- Right Minimalist Classic Table Counter -->
+        <div class="hero-counter-table">
+          <div class="counter-table-row">
+            <div class="counter-table-col" id="kpiActiveCard">
+              <span class="counter-table-label">ACTIVE CASES</span>
+              <span class="counter-table-num" id="kpiActiveCount">0</span>
+              <span class="counter-table-sub">진행 사건</span>
+            </div>
+            <div class="counter-table-col" id="kpiInterviewCard">
+              <span class="counter-table-label">INTERVIEW</span>
+              <span class="counter-table-num" id="kpiInterviewCount">0</span>
+              <span class="counter-table-sub">상담 필요</span>
+            </div>
+            <div class="counter-table-col" id="kpiDocsCard">
+              <span class="counter-table-label">DOCS CHECK</span>
+              <span class="counter-table-num" id="kpiDocsCount">0</span>
+              <span class="counter-table-sub">서류 보정</span>
+            </div>
+            <div class="counter-table-col highlight" id="kpiDeadlineCard">
+              <span class="counter-table-label">D-DAY URGENT</span>
+              <span class="counter-table-num text-urgent" id="kpiDeadlineCount">0</span>
+              <span class="counter-table-sub">기일 임박 (D-14)</span>
+            </div>
+            <div class="counter-table-col" id="kpiReportCard">
+              <span class="counter-table-label">REPORTS</span>
+              <span class="counter-table-num" id="kpiReportCount">0</span>
+              <span class="counter-table-sub" id="kpiReportSub">제출 완료</span>
+            </div>
           </div>
-          <div class="kpi-val"><span id="kpiInterviewCount">0</span><span class="kpi-unit">건</span></div>
-          <div class="kpi-sub">1차 면담 미완료 채무자</div>
-        </div>
-
-        <!-- 3. Missing/Incomplete Docs -->
-        <div class="kpi-card kpi-rose" id="kpiDocsCard">
-          <div class="kpi-top">
-            <span class="kpi-label">서류 미완료</span>
-            <span class="kpi-icon-badge">📄</span>
-          </div>
-          <div class="kpi-val"><span id="kpiDocsCount">0</span><span class="kpi-unit">건</span></div>
-          <div class="kpi-sub">필수 서류 보정 대기</div>
-        </div>
-
-        <!-- 4. Upcoming Deadlines (D-14) -->
-        <div class="kpi-card kpi-red" id="kpiDeadlineCard">
-          <div class="kpi-top">
-            <span class="kpi-label">주요 기일 임박</span>
-            <span class="kpi-icon-badge">⏰</span>
-          </div>
-          <div class="kpi-val"><span id="kpiDeadlineCount">0</span><span class="kpi-unit">건</span></div>
-          <div class="kpi-sub" id="kpiDeadlineSub">D-14일 이내 채권자집회</div>
-        </div>
-
-        <!-- 5. Final Report Submission -->
-        <div class="kpi-card kpi-indigo" id="kpiReportCard">
-          <div class="kpi-top">
-            <span class="kpi-label">최종 보고 제출</span>
-            <span class="kpi-icon-badge">📑</span>
-          </div>
-          <div class="kpi-val"><span id="kpiReportCount">0</span><span class="kpi-unit">건</span></div>
-          <div class="kpi-sub" id="kpiReportSub">작성대기 0건 · 제출완료 0건</div>
-        </div>
-
-      </div>
-
-      <!-- Section 1: Upcoming Deadlines (D-Day Countdown) -->
-      <section class="dash-section-card">
-        <div class="dash-section-header">
-          <div class="title-with-dot">
-            <span class="section-indicator-dot" style="background:#e11d48;"></span>
-            <h2 class="dash-section-title">🚨 주요 기일 임박 사건 (제1회 채권자집회 & 보고서 제출 D-Day)</h2>
-          </div>
-          <span class="dash-section-hint">항목 클릭 시 해당 사건 상세 정보 화면으로 즉시 전환됩니다</span>
-        </div>
-        <div class="dash-list-container" id="dashUpcomingMeetingsList">
-          <!-- Dynamic D-Day Case Items -->
         </div>
       </section>
 
-      <!-- Section 2: 2-Column Work Queues (상담 필요 & 서류 보정 미비) -->
-      <div class="dash-split-grid">
+      <!-- Section 1: Upcoming Deadlines (Editorial Cards Grid) -->
+      <section class="editorial-section">
+        <div class="editorial-section-header">
+          <div class="section-title-group">
+            <span class="section-tag-bullet">■ 기일 임박</span>
+            <h2 class="section-serif-title">Upcoming Deadlines</h2>
+          </div>
+          <span class="section-records-count" id="dashUpcomingCountDisplay">0 RECORDS</span>
+        </div>
+
+        <div class="editorial-cards-grid" id="dashUpcomingMeetingsList">
+          <!-- Dynamic Editorial D-Day Cards -->
+        </div>
+      </section>
+
+      <!-- Section 2: 2-Column Editorial Work Queues (상담 필요 & 서류 보정) -->
+      <section class="editorial-split-section">
         
         <!-- Queue 1: Pending Interviews -->
-        <section class="dash-section-card">
-          <div class="dash-section-header">
-            <div class="title-with-dot">
-              <span class="section-indicator-dot" style="background:#f59e0b;"></span>
-              <h2 class="dash-section-title">📞 상담(면담) 필요 사건</h2>
+        <div class="editorial-queue-box">
+          <div class="editorial-section-header compact">
+            <div class="section-title-group">
+              <span class="section-tag-bullet amber">■ 상담 필요</span>
+              <h3 class="section-serif-title compact">Pending Interviews</h3>
             </div>
-            <span class="badge-count-pill" id="badgeInterviewQueue">0건</span>
+            <span class="section-records-count" id="badgeInterviewQueue">0 RECORDS</span>
           </div>
-          <div class="dash-list-container compact" id="dashInterviewList">
+          <div class="editorial-queue-list" id="dashInterviewList">
             <!-- Dynamic Interview Cards -->
           </div>
-        </section>
+        </div>
 
         <!-- Queue 2: Incomplete Docs -->
-        <section class="dash-section-card">
-          <div class="dash-section-header">
-            <div class="title-with-dot">
-              <span class="section-indicator-dot" style="background:#f43f5e;"></span>
-              <h2 class="dash-section-title">📄 필수 서류 미완료 사건</h2>
+        <div class="editorial-queue-box">
+          <div class="editorial-section-header compact">
+            <div class="section-title-group">
+              <span class="section-tag-bullet rose">■ 서류 미비</span>
+              <h3 class="section-serif-title compact">Document Checks</h3>
             </div>
-            <span class="badge-count-pill" id="badgeDocsQueue">0건</span>
+            <span class="section-records-count" id="badgeDocsQueue">0 RECORDS</span>
           </div>
-          <div class="dash-list-container compact" id="dashDocsList">
+          <div class="editorial-queue-list" id="dashDocsList">
             <!-- Dynamic Docs Cards -->
           </div>
-        </section>
+        </div>
 
-      </div>
+      </section>
 
       <!-- Bottom Action Banner: Open 3x3 Explorer -->
-      <div class="dash-bottom-banner">
-        <button class="btn-open-explorer-banner" id="dashOpenExplorerBtn">
-          <div class="banner-icon-box">📁</div>
-          <div class="banner-text-box">
-            <span class="banner-title">3x3 전체 사건 탐색기 열기</span>
-            <span class="banner-desc">연도 / 월별 폴더 드릴다운, 6대 실무 상태 필터링 및 초성 정밀 검색</span>
+      <div class="editorial-bottom-banner">
+        <button class="btn-editorial-explorer" id="dashOpenExplorerBtn">
+          <div class="banner-left-content">
+            <span class="banner-editorial-tag">DOCKET BROWSER / 3X3 GRID</span>
+            <h3 class="banner-editorial-title">3x3 전체 사건 탐색기 열기</h3>
+            <p class="banner-editorial-desc">연도 및 배정 월별 폴더 드릴다운, 6대 실무 상태 필터링 및 초성 정밀 검색</p>
           </div>
-          <div class="banner-arrow-box">
-            <span>탐색기 열기</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+          <div class="banner-right-action">
+            <span>EXPLORE DOCKET</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
           </div>
         </button>
       </div>
+
+      <!-- Editorial Footer Note -->
+      <footer class="editorial-footer-note">
+        <span>BANKRUPTCY ADMIN SUITE / DESKTOP SECURE V1.0</span>
+        <span>ZERO-LEAK STANDALONE WORKSPACE · OFFLINE PROTECTED</span>
+      </footer>
 
     </main>
 
@@ -189,11 +187,11 @@
       <!-- Workspace Top Return Bar -->
       <div class="workspace-return-bar">
         <button class="btn-back-to-dash" id="backToDashBtn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
           <span>← 종합 상황판으로 돌아가기</span>
         </button>
         <div class="workspace-quick-actions">
-          <span class="status-quick-label">상태 변경:</span>
+          <span class="status-quick-label">진행 단계:</span>
           <select id="caseQuickStatusSelect" class="select-quick-status">
             <option value="신규접수">신규접수</option>
             <option value="서류보정중">서류보정중</option>
@@ -211,8 +209,8 @@
           <div class="hero-identity">
             <span class="badge-type-pill" id="heroCaseType">개인파산</span>
             <span class="badge-status-pill" id="heroStatusBadge">신규접수</span>
-            <h1 class="hero-case-no" id="heroCaseTitle">2026하면0201</h1>
-            <span class="hero-debtor-name" id="heroDebtorName">이지은</span>
+            <h1 class="hero-case-no" id="heroCaseTitle">2026하면0801</h1>
+            <span class="hero-debtor-name" id="heroDebtorName">김인철</span>
           </div>
           <div class="hero-btn-group">
             <button class="btn-primary" id="heroOpenFolderBtn">
@@ -242,11 +240,11 @@
           </div>
           <div class="metric-tile">
             <span class="metric-label">채권자집회 기일</span>
-            <span class="metric-value font-mono" style="color:#e11d48;" id="metaMeetingDate">2026-04-11 (D-43)</span>
+            <span class="metric-value font-mono" style="color:#8b2635;" id="metaMeetingDate">2026-09-01 (D-3)</span>
           </div>
           <div class="metric-tile">
             <span class="metric-label">채무액</span>
-            <span class="metric-value" style="color:#0284c7;" id="metaDebtAmount">1억 1,000만 원</span>
+            <span class="metric-value" style="color:#1e3a5f;" id="metaDebtAmount">1억 2,345만 원</span>
           </div>
         </div>
 
@@ -419,25 +417,25 @@
         <!-- Row 3: Dark Capsule with 7 White Pill Buttons (All + 6 Pipeline Statuses) -->
         <div class="mockup-status-capsule">
           <button class="mockup-pill-btn active" data-status="ALL" id="pill-all">
-            전체 : 40 건
+            전체 : 0 건
           </button>
           <button class="mockup-pill-btn" data-status="NEW" id="pill-new">
-            신규 접수 : 10 건
+            신규 접수 : 0 건
           </button>
           <button class="mockup-pill-btn" data-status="DOC_CORRECTION" id="pill-doc">
-            서류 보정 : 4 건
+            서류 보정 : 0 건
           </button>
           <button class="mockup-pill-btn" data-status="BANK_ANALYSIS" id="pill-bank">
-            통장 분석 : 9 건
+            통장 분석 : 0 건
           </button>
           <button class="mockup-pill-btn" data-status="MEETING" id="pill-meet">
-            집회·보고 : 8 건
+            집회·보고 : 0 건
           </button>
           <button class="mockup-pill-btn" data-status="DIVIDEND" id="pill-dividend">
-            환가·배당 : 3 건
+            환가·배당 : 0 건
           </button>
           <button class="mockup-pill-btn" data-status="CLOSED" id="pill-closed">
-            면책·종결 : 6 건
+            면책·종결 : 0 건
           </button>
         </div>
 
@@ -495,7 +493,7 @@
           <div class="form-row-2">
             <div class="form-group">
               <label>사건번호 <span class="req">*</span></label>
-              <input type="text" id="newCaseNumber" placeholder="예: 2026하면0211" required>
+              <input type="text" id="newCaseNumber" placeholder="예: 2026하면0811" required>
             </div>
             <div class="form-group">
               <label>채무자명(법인명) <span class="req">*</span></label>
@@ -561,8 +559,8 @@
         </div>
         <form class="sub-modal-form" id="moveDateForm">
           <div style="background:#f8fafc; padding:12px 14px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:12px;">
-            <div style="font-weight:800; font-size:16px; color:#0f172a;" id="moveTargetCaseTitle">[2026하면0201] 이지은</div>
-            <div style="font-size:12.5px; color:#64748b; margin-top:2px;" id="moveCurrentPathDisplay">현재 위치: 2026년 / 02월_배정사건</div>
+            <div style="font-weight:800; font-size:16px; color:#0f172a;" id="moveTargetCaseTitle">[2026하면0801] 김인철</div>
+            <div style="font-size:12.5px; color:#64748b; margin-top:2px;" id="moveCurrentPathDisplay">현재 위치: 2026년 / 08월_배정사건</div>
           </div>
 
           <div class="form-row-2">
@@ -571,7 +569,6 @@
               <select id="moveDestYear" required>
                 <option value="2026">2026년</option>
                 <option value="2025">2025년</option>
-                <option value="2024">2024년</option>
               </select>
             </div>
             <div class="form-group">
@@ -579,16 +576,9 @@
               <select id="moveDestMonth" required>
                 <option value="01">01월_배정사건</option>
                 <option value="02">02월_배정사건</option>
-                <option value="03">03월_배정사건</option>
-                <option value="04">04월_배정사건</option>
-                <option value="05">05월_배정사건</option>
                 <option value="06">06월_배정사건</option>
                 <option value="07">07월_배정사건</option>
-                <option value="08">08월_배정사건</option>
-                <option value="09">09월_배정사건</option>
-                <option value="10">10월_배정사건</option>
-                <option value="11">11월_배정사건</option>
-                <option value="12">12월_배정사건</option>
+                <option value="08" selected>08월_배정사건</option>
               </select>
             </div>
           </div>
